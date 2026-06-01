@@ -7,6 +7,10 @@ Esta carpeta contiene la propuesta de arquitectura de Fase 1.
 - [proposal.md](proposal.md): arquitectura Text-to-SQL con Next.js SSR,
   Fastify, Prisma ORM, MCP remoto, PostgreSQL read-only y despliegue
   considerando Cloudflare o Railway.
+- [../diagrams/drawio/architecture.drawio](../diagrams/drawio/architecture.drawio):
+  diagrama draw.io editable de arquitectura.
+- [../diagrams/mermaid/architecture.mmd](../diagrams/mermaid/architecture.mmd):
+  fuente Mermaid del diagrama de arquitectura.
 
 ## Pendiente
 

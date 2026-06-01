@@ -1,0 +1,22 @@
+flowchart TB
+  CEO["CEO"]
+  External["External MCP client\nClaude / Cursor / Codex"]
+
+  Login["Login"]
+  ViewDashboard["View executive dashboard"]
+  FilterReport["Filter report"]
+  AskChart["Ask about chart/report"]
+  GlobalChat["Ask global question"]
+  MCPQuery["Query through MCP"]
+  Audit["Audit query"]
+
+  CEO --> Login
+  CEO --> ViewDashboard
+  CEO --> FilterReport
+  CEO --> AskChart
+  CEO --> GlobalChat
+  External --> MCPQuery
+
+  AskChart --> Audit
+  GlobalChat --> Audit
+  MCPQuery --> Audit

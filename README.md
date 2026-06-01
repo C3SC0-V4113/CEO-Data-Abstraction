@@ -89,3 +89,4 @@ restricciones de seguridad, las tecnologias y el despliegue.
 4. Revisar dashboard/reporting en [docs/strategy/dashboard-reporting.md](docs/strategy/dashboard-reporting.md).
 5. Revisar MCP en [docs/strategy/mcp-first-access.md](docs/strategy/mcp-first-access.md).
 6. Leer la decision de login/despliegue en [docs/adr/0004-adopt-single-ceo-login-and-railway-backend-for-mvp.md](docs/adr/0004-adopt-single-ceo-login-and-railway-backend-for-mvp.md).
+7. Revisar diagramas en [docs/diagrams/README.md](docs/diagrams/README.md).

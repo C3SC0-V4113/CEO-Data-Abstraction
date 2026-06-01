@@ -1,0 +1,174 @@
+erDiagram
+  users ||--o{ sessions : owns
+  customers ||--o{ subscriptions : has
+  customers ||--o{ invoices : receives
+  customers ||--o{ sales_opportunities : has
+  customers ||--o{ projects : owns
+  customers ||--o{ support_tickets : opens
+  projects ||--o{ time_entries : tracks
+  report_definitions ||--o{ report_snapshots : generates
+  report_definitions ||--o{ dashboard_widgets : renders
+  users ||--o{ query_audit_log : triggers
+
+  users {
+    uuid id
+    string email
+    string password_hash
+    string role
+    string name
+    datetime created_at
+    datetime last_login_at
+  }
+
+  sessions {
+    uuid id
+    uuid user_id
+    datetime expires_at
+    datetime created_at
+  }
+
+  customers {
+    uuid id
+    string name
+    string segment
+    string status
+    datetime created_at
+  }
+
+  subscriptions {
+    uuid id
+    uuid customer_id
+    string plan_name
+    decimal mrr
+    decimal arr
+    datetime started_at
+    datetime ended_at
+    string status
+  }
+
+  invoices {
+    uuid id
+    uuid customer_id
+    datetime invoice_date
+    datetime due_date
+    string status
+    string currency
+    decimal amount
+  }
+
+  sales_opportunities {
+    uuid id
+    uuid customer_id
+    uuid owner_id
+    string stage
+    datetime expected_close_date
+    decimal estimated_amount
+    decimal probability
+    string status
+  }
+
+  projects {
+    uuid id
+    uuid customer_id
+    string name
+    string status
+    datetime start_date
+    datetime target_end_date
+    decimal budget
+    decimal recognized_revenue
+    decimal estimated_cost
+  }
+
+  time_entries {
+    uuid id
+    uuid project_id
+    uuid employee_id
+    datetime entry_date
+    decimal hours
+    boolean billable
+  }
+
+  support_tickets {
+    uuid id
+    uuid customer_id
+    string priority
+    string status
+    datetime sla_due_at
+    datetime created_at
+    datetime resolved_at
+  }
+
+  expenses {
+    uuid id
+    string category
+    string area
+    datetime expense_date
+    decimal amount
+    string currency
+  }
+
+  report_definitions {
+    uuid id
+    string slug
+    string title
+    string category
+    string source_view
+    json default_filters
+    string refresh_policy
+    boolean enabled
+  }
+
+  report_snapshots {
+    uuid id
+    uuid report_id
+    datetime period_start
+    datetime period_end
+    datetime generated_at
+    int ttl_minutes
+    string freshness_status
+    json filters
+    string summary
+    json payload
+  }
+
+  dashboard_widgets {
+    uuid id
+    string route
+    uuid report_id
+    string widget_type
+    string title
+    int position
+    string default_chart_type
+    boolean ask_enabled
+  }
+
+  query_audit_log {
+    uuid id
+    string trace_id
+    uuid user_id
+    string client_type
+    string question
+    string generated_sql
+    string validated_sql
+    string validation_status
+    datetime created_at
+  }
+
+  metric_snapshots {
+    uuid id
+    string metric_name
+    datetime period_start
+    datetime period_end
+    json dimensions
+    decimal value
+    datetime computed_at
+  }
+
+  report_jobs {
+    uuid id
+    string name
+    string frequency
+    string audience
+    json metric_scope
+    boolean enabled
+  }

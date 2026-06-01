@@ -1,0 +1,17 @@
+flowchart TB
+  Login["Login screen\nEmail\nPassword\nSign in\nNo registration"]
+  App["Authenticated app shell\nHeader\nSidebar menu"]
+  Dashboard["Dashboard overview\nKPI row\nMRR line chart\nRisk cards\nPreguntar buttons"]
+  Revenue["Revenue view\nMRR line\nNew vs expansion vs churn bars\nCustomer change table"]
+  Projects["Projects view\nMargin bars\nRisk table\nFilters"]
+  Chat["Floating chat/sidebar\nRecommended questions\nComposer\nBadges: Global, Reporte, Grafico, Exploratorio, Solo lectura"]
+  History["Reports history\nFilters: period, category, freshness\nSnapshot table"]
+
+  Login --> App
+  App --> Dashboard
+  App --> Revenue
+  App --> Projects
+  App --> History
+  Dashboard --> Chat
+  Revenue --> Chat
+  Projects --> Chat

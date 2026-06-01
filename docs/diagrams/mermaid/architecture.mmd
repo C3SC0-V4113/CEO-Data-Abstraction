@@ -1,0 +1,30 @@
+flowchart LR
+  CEO["CEO user"]
+  Browser["Browser"]
+  Cloudflare["Cloudflare Workers\nNext.js SSR + shadcn/ui"]
+  RailwayApi["Railway\nFastify + TypeScript"]
+  MCP["Remote MCP endpoint\nPOST /mcp"]
+  Prisma["Prisma ORM"]
+  Postgres["Railway PostgreSQL\nread-only runtime user"]
+  Seed["Prisma seed\nfake MVP data"]
+  Reports["Report snapshots\nreport_definitions\nreport_snapshots\ndashboard_widgets"]
+  Safety["SQL Safety Layer\nAST parser + allowlists\nSELECT only"]
+  LLM["LLM Provider"]
+  Audit["query_audit_log"]
+  ExternalClients["Claude Desktop / Cursor / Codex\nMCP clients"]
+
+  CEO --> Browser
+  Browser --> Cloudflare
+  Cloudflare -->|"HTTP APIs\n/api/dashboard/*\n/api/reports/*\n/api/chat/*"| RailwayApi
+  Cloudflare -. "does not call MCP directly" .- MCP
+  ExternalClients -->|"Bearer token\nMCP_API_KEY"| MCP
+  MCP --> RailwayApi
+  RailwayApi --> Safety
+  RailwayApi --> Reports
+  RailwayApi --> LLM
+  Safety --> Prisma
+  Prisma --> Postgres
+  Seed --> Postgres
+  Postgres --> Reports
+  RailwayApi --> Audit
+  MCP --> Audit

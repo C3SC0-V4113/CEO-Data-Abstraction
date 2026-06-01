@@ -1,0 +1,19 @@
+sequenceDiagram
+  actor CEO
+  participant Next as Next.js SSR on Cloudflare
+  participant API as Fastify on Railway
+  participant DB as Railway PostgreSQL
+  participant Chat as Contextual Chat
+
+  CEO->>Next: Open /dashboard
+  Next->>API: GET /api/dashboard/overview
+  API->>DB: Read report snapshots and views
+  DB-->>API: Report payloads
+  API-->>Next: KPIs, charts, freshness
+  Next-->>CEO: Render dashboard
+  CEO->>Next: Click Preguntar on chart
+  Next->>Chat: Open sidebar with report context
+  CEO->>Chat: Ask focused question
+  Chat->>API: POST /api/chat/report-question
+  API->>API: Use report context first
+  API-->>Chat: Answer, warnings, trace_id

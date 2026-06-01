@@ -1,0 +1,22 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Frontend Flow" id="frontend-flow">
+    <mxGraphModel dx="1000" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="ceo" value="CEO" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e6f4ff;strokeColor=#1677ff;" vertex="1" parent="1"><mxGeometry x="40" y="140" width="100" height="60" as="geometry"/></mxCell>
+        <mxCell id="next" value="Next.js SSR&#xa;Cloudflare Workers" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f6ffed;strokeColor=#52c41a;" vertex="1" parent="1"><mxGeometry x="220" y="120" width="180" height="90" as="geometry"/></mxCell>
+        <mxCell id="api" value="Fastify API&#xa;Railway" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff7e6;strokeColor=#fa8c16;" vertex="1" parent="1"><mxGeometry x="500" y="120" width="180" height="90" as="geometry"/></mxCell>
+        <mxCell id="db" value="Railway PostgreSQL&#xa;Snapshots + views" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6fffb;strokeColor=#13c2c2;" vertex="1" parent="1"><mxGeometry x="780" y="120" width="200" height="90" as="geometry"/></mxCell>
+        <mxCell id="chat" value="Contextual Chat&#xa;report_id + filters + data sample" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f9f0ff;strokeColor=#722ed1;" vertex="1" parent="1"><mxGeometry x="500" y="330" width="240" height="100" as="geometry"/></mxCell>
+        <mxCell id="f1" edge="1" parent="1" source="ceo" target="next" style="endArrow=block;html=1;" value="open /dashboard"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f2" edge="1" parent="1" source="next" target="api" style="endArrow=block;html=1;" value="GET /api/dashboard/overview"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f3" edge="1" parent="1" source="api" target="db" style="endArrow=block;html=1;" value="read snapshots"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f4" edge="1" parent="1" source="db" target="api" style="endArrow=block;html=1;" value="payload"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f5" edge="1" parent="1" source="api" target="next" style="endArrow=block;html=1;" value="KPIs + charts + freshness"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f6" edge="1" parent="1" source="next" target="chat" style="endArrow=block;html=1;" value="Preguntar"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="f7" edge="1" parent="1" source="chat" target="api" style="endArrow=block;html=1;" value="POST /api/chat/report-question"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

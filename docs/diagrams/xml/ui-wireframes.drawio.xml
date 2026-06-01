@@ -1,0 +1,22 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="UI Wireframes" id="ui-wireframes">
+    <mxGraphModel dx="1200" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="login" value="Login&#xa;Email&#xa;Password&#xa;Sign in&#xa;No registration" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6f4ff;strokeColor=#1677ff;" vertex="1" parent="1"><mxGeometry x="60" y="80" width="220" height="180" as="geometry"/></mxCell>
+        <mxCell id="shell" value="App Shell&#xa;Header: company health + user menu&#xa;Sidebar: Overview, Revenue, Customers, Pipeline, Projects, Support, Finance, History" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f6ffed;strokeColor=#52c41a;" vertex="1" parent="1"><mxGeometry x="360" y="40" width="360" height="170" as="geometry"/></mxCell>
+        <mxCell id="dashboard" value="Dashboard Overview&#xa;KPI row: MRR, Churn, Runway, Project Risk, Critical Tickets&#xa;Line chart: MRR last 6 months&#xa;Risk cards with Preguntar" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff7e6;strokeColor=#fa8c16;" vertex="1" parent="1"><mxGeometry x="360" y="260" width="360" height="220" as="geometry"/></mxCell>
+        <mxCell id="reports" value="Report View&#xa;Filters: date, customer, project, status&#xa;Bar/line/table widgets&#xa;Freshness label&#xa;Preguntar per widget" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6fffb;strokeColor=#13c2c2;" vertex="1" parent="1"><mxGeometry x="780" y="260" width="340" height="220" as="geometry"/></mxCell>
+        <mxCell id="chat" value="Floating Chat / Sidebar&#xa;Recommended questions&#xa;Composer&#xa;Badges: Global, Reporte, Grafico, Exploratorio, Solo lectura&#xa;Context summary panel" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f9f0ff;strokeColor=#722ed1;" vertex="1" parent="1"><mxGeometry x="780" y="40" width="340" height="180" as="geometry"/></mxCell>
+        <mxCell id="history" value="Reports History&#xa;Snapshot table&#xa;Filters: period, category, freshness, report&#xa;Open previous report" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#8c8c8c;" vertex="1" parent="1"><mxGeometry x="360" y="540" width="360" height="160" as="geometry"/></mxCell>
+        <mxCell id="w1" edge="1" parent="1" source="login" target="shell" style="endArrow=block;html=1;" value="authenticated"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="w2" edge="1" parent="1" source="shell" target="dashboard" style="endArrow=block;html=1;" value="default route"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="w3" edge="1" parent="1" source="shell" target="reports" style="endArrow=block;html=1;" value="section route"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="w4" edge="1" parent="1" source="dashboard" target="chat" style="endArrow=block;html=1;" value="Preguntar"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="w5" edge="1" parent="1" source="reports" target="chat" style="endArrow=block;html=1;" value="contextual question"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="w6" edge="1" parent="1" source="shell" target="history" style="endArrow=block;html=1;" value="history route"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
