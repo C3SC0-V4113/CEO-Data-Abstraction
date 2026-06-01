@@ -1,26 +1,60 @@
-<mxfile host="app.diagrams.net">
+<mxfile host="Electron">
   <diagram name="Architecture" id="architecture">
-    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+    <mxGraphModel dx="1664" dy="989" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
       <root>
-        <mxCell id="0"/>
-        <mxCell id="1" parent="0"/>
-        <mxCell id="cloudflare" value="Cloudflare Workers&#xa;Next.js SSR + shadcn/ui&#xa;Dashboard report-first" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6f4ff;strokeColor=#1677ff;" vertex="1" parent="1"><mxGeometry x="80" y="160" width="260" height="120" as="geometry"/></mxCell>
-        <mxCell id="railway" value="Railway&#xa;Fastify + TypeScript&#xa;Web APIs + MCP endpoint" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f6ffed;strokeColor=#52c41a;" vertex="1" parent="1"><mxGeometry x="460" y="150" width="260" height="140" as="geometry"/></mxCell>
-        <mxCell id="postgres" value="Railway PostgreSQL&#xa;Prisma ORM&#xa;Read-only runtime user" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff7e6;strokeColor=#fa8c16;" vertex="1" parent="1"><mxGeometry x="860" y="160" width="260" height="120" as="geometry"/></mxCell>
-        <mxCell id="mcp" value="External MCP Clients&#xa;Claude / Cursor / Codex&#xa;Bearer MCP_API_KEY" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f9f0ff;strokeColor=#722ed1;" vertex="1" parent="1"><mxGeometry x="460" y="20" width="260" height="100" as="geometry"/></mxCell>
-        <mxCell id="llm" value="LLM Provider&#xa;Text-to-SQL candidate&#xa;Executive narrative" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff0f6;strokeColor=#eb2f96;" vertex="1" parent="1"><mxGeometry x="460" y="360" width="260" height="100" as="geometry"/></mxCell>
-        <mxCell id="safety" value="SQL Safety Layer&#xa;AST parser&#xa;SELECT only + allowlists" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d4b106;" vertex="1" parent="1"><mxGeometry x="780" y="360" width="240" height="100" as="geometry"/></mxCell>
-        <mxCell id="reports" value="Report Layer&#xa;report_definitions&#xa;report_snapshots&#xa;dashboard_widgets" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6fffb;strokeColor=#13c2c2;" vertex="1" parent="1"><mxGeometry x="860" y="520" width="260" height="120" as="geometry"/></mxCell>
-        <mxCell id="audit" value="Audit Log&#xa;query_audit_log&#xa;trace_id + SQL + client" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#8c8c8c;" vertex="1" parent="1"><mxGeometry x="460" y="520" width="260" height="100" as="geometry"/></mxCell>
-        <mxCell id="seed" value="Prisma Seed&#xa;Fake MVP data&#xa;12-18 months history" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f5ff;strokeColor=#2f54eb;" vertex="1" parent="1"><mxGeometry x="1180" y="160" width="180" height="120" as="geometry"/></mxCell>
-        <mxCell id="e1" edge="1" parent="1" source="cloudflare" target="railway" style="endArrow=block;html=1;rounded=0;" value="HTTP APIs&#xa;not MCP"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e2" edge="1" parent="1" source="mcp" target="railway" style="endArrow=block;html=1;rounded=0;" value="POST /mcp"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e3" edge="1" parent="1" source="railway" target="llm" style="endArrow=block;html=1;rounded=0;" value="orchestrates"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e4" edge="1" parent="1" source="railway" target="safety" style="endArrow=block;html=1;rounded=0;" value="validate SQL"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e5" edge="1" parent="1" source="safety" target="postgres" style="endArrow=block;html=1;rounded=0;" value="approved SELECT"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e6" edge="1" parent="1" source="postgres" target="reports" style="endArrow=block;html=1;rounded=0;" value="views + snapshots"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e7" edge="1" parent="1" source="railway" target="audit" style="endArrow=block;html=1;rounded=0;" value="audit every request"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e8" edge="1" parent="1" source="seed" target="postgres" style="endArrow=block;html=1;rounded=0;" value="seed data"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="cloudflare" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6f4ff;strokeColor=#1677ff;" value="Cloudflare Workers&#xa;Next.js SSR + shadcn/ui&#xa;Dashboard report-first" vertex="1">
+          <mxGeometry height="120" width="260" x="80" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="railway" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f6ffed;strokeColor=#52c41a;" value="Railway&#xa;Fastify + TypeScript&#xa;Web APIs + MCP endpoint" vertex="1">
+          <mxGeometry height="140" width="260" x="460" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="postgres" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff7e6;strokeColor=#fa8c16;" value="Railway PostgreSQL&#xa;Prisma ORM&#xa;Read-only runtime user" vertex="1">
+          <mxGeometry height="120" width="260" x="960" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="mcp" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f9f0ff;strokeColor=#722ed1;" value="External MCP Clients&#xa;Claude / Cursor / Codex&#xa;Bearer MCP_API_KEY" vertex="1">
+          <mxGeometry height="100" width="260" x="460" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="llm" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff0f6;strokeColor=#eb2f96;" value="LLM Provider&#xa;Text-to-SQL candidate&#xa;Executive narrative" vertex="1">
+          <mxGeometry height="100" width="260" x="190" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="safety" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d4b106;" value="SQL Safety Layer&#xa;AST parser&#xa;SELECT only + allowlists" vertex="1">
+          <mxGeometry height="100" width="240" x="750" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="reports" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6fffb;strokeColor=#13c2c2;" value="Report Layer&#xa;report_definitions&#xa;report_snapshots&#xa;dashboard_widgets" vertex="1">
+          <mxGeometry height="120" width="260" x="960" y="530" as="geometry" />
+        </mxCell>
+        <mxCell id="audit" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#8c8c8c;" value="Audit Log&#xa;query_audit_log&#xa;trace_id + SQL + client" vertex="1">
+          <mxGeometry height="100" width="260" x="460" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="seed" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f5ff;strokeColor=#2f54eb;" value="Prisma Seed&#xa;Fake MVP data&#xa;12-18 months history" vertex="1">
+          <mxGeometry height="120" width="180" x="1340" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="cloudflare" style="endArrow=block;html=1;rounded=0;" target="railway" value="HTTP APIs&#xa;not MCP">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="mcp" style="endArrow=block;html=1;rounded=0;" target="railway" value="POST /mcp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="railway" style="endArrow=block;html=1;rounded=0;" target="llm" value="orchestrates">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="railway" style="endArrow=block;html=1;rounded=0;" target="safety" value="validate SQL">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="safety" style="endArrow=block;html=1;rounded=0;" target="postgres" value="approved SELECT">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="postgres" style="endArrow=block;html=1;rounded=0;" target="reports" value="views + snapshots">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="railway" style="endArrow=block;html=1;rounded=0;" target="audit" value="audit every request">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="seed" style="endArrow=block;html=1;rounded=0;" target="postgres" value="seed data">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>

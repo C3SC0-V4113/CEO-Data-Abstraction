@@ -1,23 +1,51 @@
-<mxfile host="app.diagrams.net">
+<mxfile host="Electron">
   <diagram name="Database Model" id="database-model">
-    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+    <mxGraphModel dx="2020" dy="1201" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
       <root>
-        <mxCell id="0"/>
-        <mxCell id="1" parent="0"/>
-        <mxCell id="auth" value="Auth&#xa;users&#xa;sessions" style="swimlane;whiteSpace=wrap;html=1;fillColor=#e6f4ff;strokeColor=#1677ff;" vertex="1" parent="1"><mxGeometry x="40" y="60" width="220" height="120" as="geometry"/></mxCell>
-        <mxCell id="core" value="Core Business Data&#xa;customers&#xa;subscriptions&#xa;invoices&#xa;sales_opportunities" style="swimlane;whiteSpace=wrap;html=1;fillColor=#f6ffed;strokeColor=#52c41a;" vertex="1" parent="1"><mxGeometry x="320" y="60" width="260" height="180" as="geometry"/></mxCell>
-        <mxCell id="delivery" value="Delivery + Support&#xa;projects&#xa;time_entries&#xa;support_tickets&#xa;expenses" style="swimlane;whiteSpace=wrap;html=1;fillColor=#fff7e6;strokeColor=#fa8c16;" vertex="1" parent="1"><mxGeometry x="640" y="60" width="260" height="180" as="geometry"/></mxCell>
-        <mxCell id="views" value="Analytics Views&#xa;ceo_revenue_summary&#xa;ceo_customer_health&#xa;ceo_sales_pipeline&#xa;ceo_project_margin&#xa;ceo_delivery_risk&#xa;ceo_support_health&#xa;ceo_financial_runway" style="swimlane;whiteSpace=wrap;html=1;fillColor=#e6fffb;strokeColor=#13c2c2;" vertex="1" parent="1"><mxGeometry x="960" y="60" width="340" height="220" as="geometry"/></mxCell>
-        <mxCell id="reports" value="Reporting&#xa;report_definitions&#xa;report_snapshots&#xa;dashboard_widgets&#xa;metric_snapshots&#xa;report_jobs" style="swimlane;whiteSpace=wrap;html=1;fillColor=#f9f0ff;strokeColor=#722ed1;" vertex="1" parent="1"><mxGeometry x="320" y="360" width="300" height="180" as="geometry"/></mxCell>
-        <mxCell id="audit" value="Audit&#xa;query_audit_log&#xa;trace_id&#xa;generated_sql&#xa;validated_sql" style="swimlane;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#8c8c8c;" vertex="1" parent="1"><mxGeometry x="700" y="360" width="260" height="160" as="geometry"/></mxCell>
-        <mxCell id="seed" value="Prisma Seed&#xa;CEO user&#xa;fake data&#xa;intentional anomalies" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d4b106;" vertex="1" parent="1"><mxGeometry x="40" y="360" width="220" height="140" as="geometry"/></mxCell>
-        <mxCell id="d1" edge="1" parent="1" source="seed" target="auth" style="endArrow=block;html=1;" value="creates CEO"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="d2" edge="1" parent="1" source="seed" target="core" style="endArrow=block;html=1;" value="loads data"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="d3" edge="1" parent="1" source="seed" target="delivery" style="endArrow=block;html=1;" value="loads data"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="d4" edge="1" parent="1" source="core" target="views" style="endArrow=block;html=1;" value="source"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="d5" edge="1" parent="1" source="delivery" target="views" style="endArrow=block;html=1;" value="source"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="d6" edge="1" parent="1" source="views" target="reports" style="endArrow=block;html=1;" value="snapshot"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="d7" edge="1" parent="1" source="auth" target="audit" style="endArrow=block;html=1;" value="user_id"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="auth" parent="1" style="swimlane;whiteSpace=wrap;html=1;fillColor=#e6f4ff;strokeColor=#1677ff;" value="Auth&#xa;users&#xa;sessions" vertex="1">
+          <mxGeometry height="120" width="220" x="40" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="core" parent="1" style="swimlane;whiteSpace=wrap;html=1;fillColor=#f6ffed;strokeColor=#52c41a;" value="Core Business Data&#xa;customers&#xa;subscriptions&#xa;invoices&#xa;sales_opportunities" vertex="1">
+          <mxGeometry height="180" width="260" x="610" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="delivery" parent="1" style="swimlane;whiteSpace=wrap;html=1;fillColor=#fff7e6;strokeColor=#fa8c16;" value="Delivery + Support&#xa;projects&#xa;time_entries&#xa;support_tickets&#xa;expenses" vertex="1">
+          <mxGeometry height="180" width="260" x="1010" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="views" parent="1" style="swimlane;whiteSpace=wrap;html=1;fillColor=#e6fffb;strokeColor=#13c2c2;" value="Analytics Views&#xa;ceo_revenue_summary&#xa;ceo_customer_health&#xa;ceo_sales_pipeline&#xa;ceo_project_margin&#xa;ceo_delivery_risk&#xa;ceo_support_health&#xa;ceo_financial_runway" vertex="1">
+          <mxGeometry height="220" width="340" x="970" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="reports" parent="1" style="swimlane;whiteSpace=wrap;html=1;fillColor=#f9f0ff;strokeColor=#722ed1;" value="Reporting&#xa;report_definitions&#xa;report_snapshots&#xa;dashboard_widgets&#xa;metric_snapshots&#xa;report_jobs" vertex="1">
+          <mxGeometry height="180" width="300" x="990" y="690" as="geometry" />
+        </mxCell>
+        <mxCell id="audit" parent="1" style="swimlane;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#8c8c8c;" value="Audit&#xa;query_audit_log&#xa;trace_id&#xa;generated_sql&#xa;validated_sql" vertex="1">
+          <mxGeometry height="160" width="260" x="310" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="seed" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d4b106;" value="Prisma Seed&#xa;CEO user&#xa;fake data&#xa;intentional anomalies" vertex="1">
+          <mxGeometry height="140" width="220" x="40" y="460" as="geometry" />
+        </mxCell>
+        <mxCell id="d1" edge="1" parent="1" source="seed" style="endArrow=block;html=1;" target="auth" value="creates CEO">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d2" edge="1" parent="1" source="seed" style="endArrow=block;html=1;" target="core" value="loads data">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d3" edge="1" parent="1" source="seed" style="endArrow=block;html=1;" target="delivery" value="loads data">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d4" edge="1" parent="1" source="core" style="endArrow=block;html=1;" target="views" value="source">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d5" edge="1" parent="1" source="delivery" style="endArrow=block;html=1;" target="views" value="source">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d6" edge="1" parent="1" source="views" style="endArrow=block;html=1;" target="reports" value="snapshot">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d7" edge="1" parent="1" source="auth" style="endArrow=block;html=1;" target="audit" value="user_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
