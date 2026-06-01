@@ -33,22 +33,43 @@ Prisma Accelerate y el MCP SDK funcionan correctamente en la prueba tecnica.
 
 ### Next.js SSR + shadcn/ui
 
-La web app sera una interfaz ejecutiva minimalista:
+La web app sera una interfaz ejecutiva minimalista report-first:
 
-- Ventana de chat.
-- Panel de resultados.
+- Dashboard ejecutivo como vista principal.
+- Reportes y graficas predefinidas.
 - Tablas.
 - Graficas de linea, barras, area y KPIs.
 - Preguntas sugeridas para CEO.
+- Sidebar o burbuja de chat como soporte secundario.
+- Boton `Preguntar` en cada reporte/grafico para abrir chat contextual.
 
 Las server actions o route handlers de Next.js se usaran para UI/session cuando
 convenga, pero las consultas de datos pasan por Fastify.
+
+Rutas SSR propuestas:
+
+- `/dashboard`
+- `/dashboard/revenue`
+- `/dashboard/customers`
+- `/dashboard/pipeline`
+- `/dashboard/projects`
+- `/dashboard/support`
+- `/dashboard/finance`
+- `/reports/history`
 
 ### Fastify + TypeScript
 
 Fastify sera el backend principal:
 
 - `POST /api/chat/query`
+- `POST /api/chat/report-question`
+- `GET /api/dashboard/overview`
+- `GET /api/reports/revenue`
+- `GET /api/reports/customers`
+- `GET /api/reports/pipeline`
+- `GET /api/reports/projects`
+- `GET /api/reports/support`
+- `GET /api/reports/finance`
 - `GET /api/schema/catalog`
 - `GET /api/query/history`
 - `GET /api/health`
@@ -56,6 +77,33 @@ Fastify sera el backend principal:
 
 Fastify concentra autenticacion, MCP, LLM Orchestrator, validacion SQL,
 ejecucion read-only, auditoria y respuesta comun en TypeScript.
+
+### Data Ingestion and Reporting
+
+Para el MVP se trabajara con datos ficticios creados por seed de PostgreSQL. La
+ingestion no representa una integracion productiva todavia; su objetivo es
+alimentar reportes ejecutivos realistas.
+
+El flujo sera:
+
+1. Prisma migration crea tablas fuente, views ejecutivas y tablas de snapshots.
+2. Prisma seed inserta clientes, suscripciones, facturas, pipeline, proyectos,
+   horas, tickets y gastos ficticios.
+3. Un job manual o script de seed genera snapshots por reporte.
+4. Las rutas SSR consumen snapshots o views ya agregadas.
+5. El chat contextual puede usar el snapshot visible antes de pedir SQL nuevo.
+
+Los snapshots deben incluir:
+
+- `report_id`
+- `period_start`
+- `period_end`
+- `generated_at`
+- `ttl_minutes`
+- `freshness_status`
+- `filters`
+- `summary`
+- `payload`
 
 ### LLM Orchestrator
 
@@ -72,6 +120,7 @@ Responsabilidades:
 - Ejecutar SQL validado.
 - Generar respuesta ejecutiva.
 - Proponer visualizacion.
+- Responder preguntas globales o focalizadas con contexto de reporte.
 
 ### SQL Safety Layer
 
@@ -124,18 +173,39 @@ Tools candidatas:
 - `suggest_executive_questions`
 - `generate_chart_spec`
 
+Las tools MCP pueden consultar reportes existentes, pero la experiencia web debe
+priorizar graficos predefinidos antes que chat libre.
+
 ## Flujo de Datos
 
-1. El CEO escribe una pregunta en la web o en un cliente MCP.
-2. El cliente envia la solicitud a Fastify.
-3. Fastify autentica al usuario o API key.
-4. El LLM Orchestrator carga schema permitido y definiciones.
-5. El LLM genera SQL candidato.
-6. SQL Safety Layer valida el SQL.
-7. Database Layer ejecuta el SQL con usuario read-only.
-8. Visualization Layer propone tabla, KPI o grafica.
-9. Fastify registra auditoria y devuelve `trace_id`.
-10. Next.js o el cliente MCP muestra respuesta, datos y warnings.
+### Flujo Report-First
+
+1. El CEO entra a una vista SSR de dashboard.
+2. Next.js solicita datos a Fastify para el reporte correspondiente.
+3. Fastify lee snapshots, views ejecutivas o queries Prisma permitidas.
+4. Next.js renderiza KPIs, tablas y graficas.
+5. Cada reporte muestra freshness y boton `Preguntar`.
+
+### Flujo de Chat Contextual
+
+1. El CEO presiona `Preguntar` en un reporte o grafico.
+2. Next.js abre sidebar o burbuja de chat.
+3. La pregunta se envia a `POST /api/chat/report-question`.
+4. El payload incluye `report_id`, filtros activos, metricas visibles,
+   `context_summary`, `source_view`, muestra de datos y freshness.
+5. El LLM Orchestrator responde usando primero el contexto visible.
+6. Si necesita datos extra, genera SQL candidato y pasa por SQL Safety Layer.
+7. Fastify registra auditoria y devuelve `trace_id`.
+
+### Flujo MCP
+
+1. El CEO o usuario tecnico pregunta desde un cliente MCP.
+2. Fastify valida token y scope.
+3. El LLM Orchestrator carga schema permitido y definiciones.
+4. El LLM genera SQL candidato si hace falta.
+5. SQL Safety Layer valida el SQL.
+6. Database Layer ejecuta con usuario read-only.
+7. Fastify registra auditoria y devuelve narrativa, datos y warnings.
 
 ## Manejo del Contexto LLM
 
@@ -189,6 +259,36 @@ La web y MCP deben compartir una estructura:
   "trace_id": "uuid"
 }
 ```
+
+Para reportes y chat contextual se extiende con:
+
+```json
+{
+  "report_id": "revenue_mrr_trend",
+  "report_title": "MRR y crecimiento",
+  "filters": {
+    "period": "last_6_months"
+  },
+  "freshness": {
+    "generated_at": "2026-06-01T08:00:00Z",
+    "ttl_minutes": 1440,
+    "status": "fresh"
+  },
+  "context_summary": "MRR crecio 8% en los ultimos 6 meses.",
+  "source_view": "ceo_revenue_summary",
+  "chart_specs": []
+}
+```
+
+## Actualizacion de Reportes
+
+El MVP no promete tiempo real. Los reportes se alimentan por seed y snapshots:
+
+- Overview: diario o manual.
+- Revenue, customers y pipeline: diario.
+- Projects y support: diario o cada 6 horas si se simula mayor dinamismo.
+- Finance: mensual.
+- Reports history: conserva snapshots por periodo.
 
 ## Entregables de Fase 2
 

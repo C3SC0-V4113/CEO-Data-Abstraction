@@ -2,8 +2,9 @@
 
 ## Idea Central
 
-Si el usuario no sabe que preguntar, la solucion debe guiarlo. El chat puede
-seguir existiendo, pero no debe ser la unica puerta de entrada.
+Si el usuario no sabe que preguntar, la solucion debe guiarlo. El chat existe,
+pero queda en segundo plano. La experiencia principal sera un dashboard
+ejecutivo con reportes y graficas predefinidas.
 
 ## Patrones de Interfaz
 
@@ -47,11 +48,25 @@ Botones o comandos predefinidos para tareas repetidas:
 - Programar alerta.
 - Ver detalle.
 
-### Dashboard + Copiloto
+### Dashboard Report-First
 
-La app Next.js SSR puede combinar graficas, tablas, filtros y chat contextual.
-El CEO navega visualmente y usa IA para explicar, resumir o sugerir siguientes
-pasos.
+La app Next.js SSR debe separar graficas por vistas: overview, revenue,
+customers, pipeline, projects, support, finance e historico de reportes. El CEO
+primero ve reportes; luego puede abrir el chat si necesita preguntar algo.
+
+### Chat Contextual por Reporte
+
+Cada grafico o reporte debe tener un boton `Preguntar`. Al usarlo, se abre el
+sidebar o burbuja de chat y se inyecta contexto del reporte:
+
+- `report_id`
+- filtros activos;
+- metricas visibles;
+- tipo de grafico;
+- resumen del reporte;
+- muestra de datos;
+- view origen;
+- freshness.
 
 ### Conversacion con Estado
 
@@ -60,6 +75,7 @@ Cuando el usuario si use chat, el sistema debe conservar contexto:
 - Periodo seleccionado.
 - Cliente, proyecto o equipo filtrado.
 - Metrica activa.
+- Reporte o grafico activo.
 - Comparacion previa.
 - Rol y permisos.
 
@@ -69,6 +85,7 @@ Cuando el usuario si use chat, el sistema debe conservar contexto:
 - Las preguntas sugeridas convierten datos recientes en acciones posibles.
 - La capa semantica evita que el usuario recuerde nombres de tablas o formulas.
 - El copiloto puede pedir aclaraciones cuando la pregunta es ambigua.
+- Los reportes predefinidos resuelven las preguntas comunes sin abrir el chat.
 
 ## Rol de IA
 
@@ -76,7 +93,7 @@ Cuando el usuario si use chat, el sistema debe conservar contexto:
 - Sugerir preguntas siguientes.
 - Detectar anomalias.
 - Resumir reportes.
-- Traducir intencion a herramientas MCP.
+- Traducir intencion a herramientas MCP cuando se use un cliente externo.
 - Recuperar definiciones desde RAG.
 
 ## Riesgos
@@ -87,6 +104,6 @@ Cuando el usuario si use chat, el sistema debe conservar contexto:
 
 ## Recomendacion Inicial
 
-Disenar primero un catalogo pequeno de metricas ejecutivas y preguntas sugeridas
-para CEO de software company. Luego validar si el usuario sigue necesitando chat
-libre o si las acciones guiadas cubren la mayor parte de los casos.
+Disenar primero un dashboard pequeno con reportes ejecutivos y boton `Preguntar`
+por grafico. Luego validar si el CEO necesita mas chat libre o si los reportes
+cubren la mayor parte de los casos.

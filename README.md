@@ -19,12 +19,15 @@ operativos:
 
 La solucion no debe ser solo un chatbot conectado a una base de datos. Debe ser
 un sistema Text-to-SQL seguro, auditable y de solo lectura, con una experiencia
-web moderna y un servidor MCP remoto protegido por tokens/API keys.
+web moderna report-first, donde los graficos y reportes resuelven las preguntas
+principales sin escribir prompts, y un servidor MCP remoto protegido por
+tokens/API keys.
 
 ## Arquitectura Objetivo
 
 - **Frontend web**: Next.js fullstack con SSR + shadcn/ui, desplegado en
-  Cloudflare Workers usando OpenNext/Cloudflare.
+  Cloudflare Workers usando OpenNext/Cloudflare. La UI principal sera un
+  dashboard ejecutivo con reportes, KPIs, tablas y graficas.
 - **Backend principal**: Fastify + TypeScript para APIs, MCP remoto,
   autenticacion, orquestacion LLM, validacion SQL y acceso read-only a datos.
 - **Despliegue backend**: Railway recomendado para MVP con Fastify + Prisma;
@@ -36,6 +39,10 @@ web moderna y un servidor MCP remoto protegido por tokens/API keys.
   preferiblemente Neon Free, Supabase Free o Railway Postgres.
 - **Seguridad**: usuario de base de datos estrictamente read-only, validacion SQL
   por AST, allowlist de views/tablas, `LIMIT`, timeouts, max rows y auditoria.
+- **Ingestion MVP**: datos ficticios en PostgreSQL generados por Prisma seed,
+  snapshots por reporte y freshness visible en cada vista.
+- **Chat contextual**: sidebar o burbuja secundaria; cada grafico/reporte tendra
+  boton `Preguntar` para inyectar contexto del reporte.
 
 ## LLM Orchestrator
 
@@ -76,5 +83,6 @@ restricciones de seguridad, las tecnologias y el despliegue.
 1. Empezar por [docs/discovery/problem-framing.md](docs/discovery/problem-framing.md).
 2. Revisar los retos de usuarios en [docs/discovery/user-challenges.md](docs/discovery/user-challenges.md).
 3. Leer la arquitectura de Fase 1 en [docs/architecture/proposal.md](docs/architecture/proposal.md).
-4. Revisar MCP en [docs/strategy/mcp-first-access.md](docs/strategy/mcp-first-access.md).
-5. Leer el ADR nuevo en [docs/adr/0002-adopt-nextjs-ssr-fastify-prisma-mcp-text-to-sql.md](docs/adr/0002-adopt-nextjs-ssr-fastify-prisma-mcp-text-to-sql.md).
+4. Revisar dashboard/reporting en [docs/strategy/dashboard-reporting.md](docs/strategy/dashboard-reporting.md).
+5. Revisar MCP en [docs/strategy/mcp-first-access.md](docs/strategy/mcp-first-access.md).
+6. Leer el ADR nuevo en [docs/adr/0003-adopt-report-first-dashboard-with-contextual-chat.md](docs/adr/0003-adopt-report-first-dashboard-with-contextual-chat.md).

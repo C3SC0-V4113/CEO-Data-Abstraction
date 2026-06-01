@@ -9,6 +9,7 @@ Este directorio contiene Architecture Decision Records (ADRs) para la propuesta
 | --- | --- | --- | --- |
 | [0001](0001-adopt-mcp-first-data-access-strategy.md) | Adoptar una estrategia MCP-first para acceso a datos con IA | Superseded | 2026-06-01 |
 | [0002](0002-adopt-nextjs-ssr-fastify-prisma-mcp-text-to-sql.md) | Adoptar Next.js SSR, Fastify, Prisma y MCP remoto para Text-to-SQL | Proposed | 2026-06-01 |
+| [0003](0003-adopt-report-first-dashboard-with-contextual-chat.md) | Adoptar dashboard report-first con chat contextual | Proposed | 2026-06-01 |
 
 ## Crear un Nuevo ADR
 

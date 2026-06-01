@@ -2,8 +2,8 @@
 
 ## Negocio
 
-- El usuario principal sera solo el CEO o tambien habra CFO, COO y lideres de
-  area?
+- Para el MVP se asume CEO como usuario principal. Queda abierto si despues se
+  incluyen CFO, COO y lideres de area.
 - Que metricas ejecutivas son oficiales: MRR, ARR, churn, margen, runway,
   pipeline, SLA?
 - Que metricas son oficiales y cuales son exploratorias?
@@ -11,8 +11,10 @@
 
 ## Datos
 
-- La data vive en una base transaccional, un data warehouse o archivos?
-- Hay historico suficiente para forecast?
+- Para el MVP se asume PostgreSQL con datos ficticios generados por seed. Queda
+  abierto si despues se conecta a base transaccional, data warehouse o archivos.
+- Para el MVP se generaran 12 a 18 meses de historico ficticio. Queda abierto si
+  historico real sera suficiente para forecast.
 - Existen definiciones formales para MRR, ARR, churn, expansion revenue y margen
   por proyecto?
 - Como se manejan monedas, descuentos, credit notes y contratos cancelados?
@@ -27,8 +29,8 @@
 
 ## Experiencia
 
-- El CEO prefiere chat libre, preguntas sugeridas, dashboard ejecutivo o
-  reportes?
+- Para el MVP se asume dashboard/reportes como experiencia principal y chat como
+  soporte secundario.
 - Que consultas deberian ser sugeridas por defecto?
 - Que automatizaciones realmente ahorran tiempo y cuales podrian generar ruido?
 - Como se medira si se redujo la dependencia del chat?

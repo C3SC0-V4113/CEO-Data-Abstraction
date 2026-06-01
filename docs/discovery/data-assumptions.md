@@ -18,6 +18,23 @@ Si el backend vive en Railway, Prisma Client se conecta de forma tradicional a
 PostgreSQL. Si vive en Cloudflare Workers, debe validarse Prisma edge/Accelerate
 o una estrategia compatible con Workers.
 
+## Datos Ficticios y Seed
+
+Para el MVP se trabajara con datos ficticios generados por nosotros mediante
+Prisma seed. El seed debe producir datos suficientemente realistas para probar
+graficas, filtros, historicos y preguntas contextuales.
+
+El dataset inicial debe cubrir:
+
+- 12 a 18 meses de historico.
+- Clientes activos, cancelados y en riesgo.
+- Suscripciones con MRR, ARR, expansion y churn.
+- Pipeline comercial por etapas.
+- Proyectos con presupuesto, costo estimado, revenue reconocido y estado.
+- Horas registradas por proyecto.
+- Tickets de soporte por prioridad y SLA.
+- Gastos por area para burn rate y runway.
+
 ## Tablas Fuente Candidatas
 
 ### customers
@@ -128,6 +145,54 @@ El Text-to-SQL debe consultar preferentemente views gobernadas:
 - `ceo_support_health`
 - `ceo_financial_runway`
 
+## Reportes y Snapshots
+
+Los graficos del dashboard deben alimentarse desde views o snapshots, no desde
+preguntas libres de chat. Esto permite SSR estable, menor latencia y menos
+dependencia de prompt engineering.
+
+### report_definitions
+
+Define reportes disponibles.
+
+- `id`
+- `slug`
+- `title`
+- `category`
+- `description`
+- `source_view`
+- `default_filters`
+- `refresh_policy`
+- `enabled`
+
+### report_snapshots
+
+Guarda resultados precomputados por periodo y filtros.
+
+- `id`
+- `report_id`
+- `period_start`
+- `period_end`
+- `generated_at`
+- `ttl_minutes`
+- `freshness_status`
+- `filters`
+- `summary`
+- `payload`
+
+### dashboard_widgets
+
+Define que graficos aparecen en cada vista SSR.
+
+- `id`
+- `route`
+- `report_id`
+- `widget_type`
+- `title`
+- `position`
+- `default_chart_type`
+- `ask_enabled`
+
 ## Tablas de Auditoria y Automatizacion
 
 ### query_audit_log
@@ -156,6 +221,9 @@ Resultados precomputados para consultas frecuentes o pesadas.
 - `value`
 - `computed_at`
 
+Nota: `metric_snapshots` puede usarse para metricas atomicas; `report_snapshots`
+para respuestas compuestas listas para dashboard.
+
 ### report_jobs
 
 Configuracion de reportes automaticos futuros.
@@ -171,3 +239,6 @@ Configuracion de reportes automaticos futuros.
 
 La IA puede generar SQL candidato, pero solo se ejecuta si pasa validacion por
 AST, allowlist y permisos read-only de base de datos.
+
+El dashboard ejecutivo no depende de que el usuario escriba prompts. Las
+preguntas importantes deben estar abstraidas como reportes, graficos o KPIs.
