@@ -1,84 +1,83 @@
-# MCP-first Access
+# MCP Remote Access
 
 ## Proposito
 
-MCP permite exponer herramientas de datos a agentes como Codex o Claude sin
-entregar acceso directo e irrestricto a la base. La idea es que el agente use
-operaciones gobernadas, auditables y alineadas con metricas de negocio.
+MCP ya no es solo una opcion de arquitectura: es un entregable obligatorio. El
+sistema debe exponer un servidor MCP remoto para que Claude Desktop,
+Cursor/Codex u otros clientes compatibles puedan consultar los mismos datos que
+la web app.
 
-## Principios
+## Relacion con Fastify
 
-- No exponer SQL libre como interfaz principal.
-- Definir herramientas con parametros claros.
-- Limitar herramientas por rol y permiso.
-- Devolver metadata de trazabilidad: metrica, periodo, filtros, fuente y fecha
-  de calculo.
-- Separar datos estructurados de conocimiento documental usado por RAG.
+El servidor MCP vivira dentro del backend Fastify o como modulo montado en el
+mismo runtime. Las tools MCP no duplican logica: llaman los mismos servicios
+internos que usa `POST /api/chat/query`.
 
-## Herramientas MCP Candidatas
+## Endpoint
 
-### list_metrics
+El endpoint objetivo sera:
 
-Devuelve metricas disponibles, descripcion, dimensiones y filtros permitidos.
+```text
+POST https://<host>/mcp
+Authorization: Bearer <token>
+```
 
-### query_metric
+El transporte debe ser HTTP remoto compatible con MCP. El servidor debe validar
+token/API key antes de exponer schema, tools o cualquier metadata.
 
-Consulta una metrica gobernada para un periodo y conjunto de filtros.
+## Tools MCP Candidatas
 
-### compare_periods
+### describe_business_schema
 
-Compara una metrica entre dos periodos y devuelve diferencia absoluta,
-diferencia porcentual y explicacion basica.
+Devuelve las views, metricas y columnas permitidas para el rol autenticado.
 
-### rank_sellers
+### ask_company_data
 
-Ordena vendedores por una metrica definida: ventas, margen, cumplimiento de meta
-o crecimiento.
+Recibe una pregunta ejecutiva en lenguaje natural y ejecuta el pipeline completo
+Text-to-SQL: contexto, LLM, validacion, consulta read-only y respuesta.
 
-### generate_forecast
+### run_readonly_query
 
-Genera un pronostico sobre una metrica y horizonte permitido, indicando supuestos
-y confianza.
+Ejecuta SQL solo si ya paso validacion estricta. Esta tool debe estar limitada a
+usuarios o scopes tecnicos.
 
-### schedule_report
+### suggest_executive_questions
 
-Programa un reporte recurrente si el usuario tiene permisos.
+Propone preguntas utiles para un CEO segun metricas disponibles y contexto.
 
-### get_report
+### generate_chart_spec
 
-Recupera reportes generados, resumenes y evidencia.
+Recibe datos tabulares o una consulta validada y propone una visualizacion:
+`table`, `kpi`, `bar`, `line` o `area`.
 
-## Flujo Conceptual
+## Respuesta Comun
 
-1. Usuario o agente expresa una intencion.
-2. El agente identifica si existe una herramienta o metrica adecuada.
-3. Si falta informacion, el agente pide aclaracion o sugiere opciones.
-4. La herramienta consulta la capa semantica y datos autorizados.
-5. El agente genera respuesta con narrativa, evidencia y siguientes preguntas.
+Las tools deben devolver una estructura compatible con la web app:
 
-## Relacion con RAG
+- `answer`
+- `sql`
+- `data`
+- `chart`
+- `warnings`
+- `metadata`
+- `trace_id`
 
-MCP consulta datos estructurados. RAG complementa con contexto documental:
+## Seguridad
 
-- Definiciones de metricas.
-- Politicas de ventas.
-- Reglas de comision.
-- Explicaciones de forecast.
-- Notas de campanas o cambios comerciales.
+- Requerir bearer token en cada request.
+- No exponer schema antes de autenticar.
+- Separar tokens MCP de credenciales de base de datos y proveedor LLM.
+- Aplicar scope por tool.
+- Auditar cliente, usuario, pregunta, SQL generado, SQL validado y resultado.
+- Ejecutar contra PostgreSQL con usuario read-only.
 
-El agente debe citar o resumir ese contexto cuando afecte la interpretacion.
+## Flujo End-to-End
 
-## Seguridad y Gobernanza
-
-- Autenticacion por usuario o rol.
-- Allowlist de herramientas.
-- Validacion de parametros.
-- Limites de granularidad y volumen.
-- Auditoria de herramientas llamadas.
-- Registro de respuestas generadas.
-
-## Resultado Esperado
-
-MCP-first crea una base segura para IA sobre datos. No resuelve por si solo la
-experiencia de usuario, pero permite construir chat, reportes, alertas y
-dashboards sobre una capa confiable.
+1. Cliente MCP envia pregunta con token.
+2. Fastify valida token y scope.
+3. MCP tool llama al LLM Orchestrator interno.
+4. El orchestrator genera SQL candidato.
+5. SQL Safety Layer valida por AST y allowlists.
+6. Database Layer ejecuta con usuario read-only.
+7. Visualization Layer sugiere grafica.
+8. MCP responde con datos, narrativa y `trace_id`.

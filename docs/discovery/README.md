@@ -8,7 +8,7 @@ arquitectura o implementar una solucion.
 - [problem-framing.md](problem-framing.md): reinterpretacion del ejercicio.
 - [user-challenges.md](user-challenges.md): retos reales de usuarios que no
   quieren depender de prompts.
-- [use-cases.md](use-cases.md): casos de uso en el dominio Ventas CRM.
+- [use-cases.md](use-cases.md): casos de uso para un CEO de software company.
 - [data-assumptions.md](data-assumptions.md): tablas y datos asumidos para
   aterrizar la conversacion.
 - [open-questions.md](open-questions.md): preguntas abiertas antes de cerrar

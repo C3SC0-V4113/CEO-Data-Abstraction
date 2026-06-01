@@ -1,140 +1,110 @@
 # Solution Options
 
-## 1. Chatbot Directo con Base de Datos
+## Opcion Adoptada: Web SSR + MCP sobre Fastify + Prisma
 
-Un chat donde el usuario escribe preguntas y el sistema traduce a consultas.
-
-### Cuando Tiene Sentido
-
-- Demo rapida.
-- Datos no sensibles.
-- Equipo tecnico controlando el uso.
-
-### Ventajas
-
-- Facil de explicar.
-- Baja friccion inicial.
-- Puede validar interes rapido.
-
-### Riesgos
-
-- Depende de que el usuario sepa preguntar.
-- Puede generar SQL inseguro o incorrecto.
-- Dificil de auditar si no hay capa de herramientas.
-- Puede producir respuestas inconsistentes para la misma metrica.
-
-## 2. MCP-first con Herramientas Gobernadas
-
-Codex, Claude u otros agentes consumen herramientas MCP con parametros y
-metricas controladas.
+La solucion propuesta combina una web app ejecutiva en Next.js SSR + shadcn/ui
+con un servidor MCP remoto. Ambos frentes consumen el mismo backend Fastify +
+TypeScript, Prisma ORM y el mismo pipeline Text-to-SQL seguro.
 
 ### Cuando Tiene Sentido
 
-- Usuarios tecnicos o semitecnicos consumen agentes.
-- Se quiere evitar SQL libre.
-- Se necesita auditar consultas y permisos.
+- El entregable exige web app y MCP.
+- El usuario principal es un CEO que necesita graficas y respuestas ejecutivas.
+- Se requiere seguridad estricta y auditoria.
+- Se quiere mantener TypeScript end-to-end para web, API, MCP y orquestacion.
 
 ### Ventajas
 
-- Contratos claros.
-- Mejor seguridad.
-- Reutilizable entre distintos clientes de IA.
-- Permite evolucionar a agentes especializados.
+- Unifica logica de negocio para web y MCP.
+- Next.js SSR permite una experiencia web moderna.
+- Fastify encaja con TypeScript, APIs de alto rendimiento, validacion y MCP.
+- Prisma aporta modelos tipados, migraciones y conexion limpia a PostgreSQL.
+- PostgreSQL permite roles read-only reales.
 
 ### Riesgos
 
-- Requiere diseno de herramientas y capa semantica.
-- Si el catalogo es pobre, el usuario sentira limites.
+- Hay mas piezas de despliegue que en una app monolitica.
+- Prisma en Cloudflare Workers requiere validacion edge y posiblemente Prisma
+  Accelerate.
+- Requiere una capa seria de validacion SQL.
 
-## 3. Catalogo de Metricas en Lenguaje Natural
+## Alternativa: Next.js Fullstack Unico
 
-Una experiencia donde el usuario elige metricas predefinidas como "ventas del
-mes", "top vendedores" o "comparativa mensual".
-
-### Cuando Tiene Sentido
-
-- Usuarios de negocio quieren respuestas rapidas.
-- Hay metricas recurrentes y bien definidas.
-- Se busca reducir prompt engineering.
+Toda la aplicacion vive en Next.js: UI, APIs, autenticacion y llamadas al LLM.
 
 ### Ventajas
 
-- Menos ambiguedad.
-- Facil de aprender.
-- Ayuda a gobernar definiciones.
+- Menos runtimes.
+- TypeScript end-to-end.
+- Despliegue SSR claro en Cloudflare Workers.
 
 ### Riesgos
 
-- Puede quedarse corto para preguntas exploratorias.
-- Requiere mantenimiento del catalogo.
+- El servidor MCP y la validacion SQL pueden quedar mas acoplados al frontend.
+- No aprovecha Fastify como backend especializado.
 
-## 4. Preguntas Sugeridas por Contexto
+## Alternativa: Fastify + Frontend Estatico
 
-El sistema propone preguntas segun rol, fecha, actividad reciente o anomalias.
-
-### Cuando Tiene Sentido
-
-- Usuarios no saben por donde empezar.
-- Hay dashboards o vistas con contexto.
-- Se quiere guiar analisis sin imponer un flujo rigido.
+Frontend estatico y backend Fastify central.
 
 ### Ventajas
 
-- Reduce pantalla en blanco.
-- Convierte anomalias en acciones.
-- Complementa chat y dashboard.
+- Simple para hosting.
+- Backend fuerte para data e IA.
 
 ### Riesgos
 
-- Si las sugerencias son genericas, se vuelven ruido.
-- Requiere senales de contexto confiables.
+- No cumple la decision de usar Next.js fullstack con SSR.
+- Menor capacidad de experiencia dinamica desde el servidor.
 
-## 5. Reportes Automaticos con IA
+## Alternativa: Cloudflare D1 como Base Principal
 
-Jobs que generan resumenes, comparativas, alertas y recomendaciones.
-
-### Cuando Tiene Sentido
-
-- Consultas repetitivas.
-- Analisis pesados que conviene correr fuera de demanda.
-- Audiencias ejecutivas que prefieren recibir un resumen.
+Usar D1 para mantener todo dentro de Cloudflare.
 
 ### Ventajas
 
-- Reduce necesidad de preguntar.
-- Permite preparar datos y narrativa.
-- Puede integrarse con correo, Slack, CRM o dashboard.
+- Muy alineado con Cloudflare.
+- Practico para prototipo gratuito.
+- Menos servicios externos.
 
 ### Riesgos
 
-- Puede generar ruido.
-- Puede enviar conclusiones sin revision.
-- Requiere calibrar frecuencia, audiencia y umbrales.
+- No cubre tan bien el requisito de permisos read-only `SELECT` a nivel de motor.
+- PostgreSQL es mas adecuado para roles, views, analitica y portabilidad.
 
-## 6. Dashboard + Copiloto
+## Despliegue Backend
 
-Una app, potencialmente en React, combina metricas visuales, filtros, acciones
-rapidas, preguntas sugeridas y chat contextual.
+### Railway
 
-### Cuando Tiene Sentido
+Railway es la opcion recomendada para el MVP del backend Fastify + Prisma:
 
-- El publico principal es usuario de negocio.
-- Se quiere una experiencia producto, no solo herramientas para agentes.
-- Hay tiempo para diseno UX y frontend.
+- Node.js tradicional.
+- Prisma Client funciona de forma directa.
+- Buen encaje con PostgreSQL administrado.
+- Menos friccion para MCP SDK, build y dependencias.
 
-### Ventajas
+### Cloudflare Workers
 
-- Menos dependencia de prompts.
-- Aprovecha patrones conocidos: filtros, tablas, cards, graficas y acciones.
-- Encaja con experiencia frontend React.
+Cloudflare Workers sigue siendo opcion para backend si la prueba tecnica valida:
 
-### Riesgos
+- Fastify bajo Node.js compatibility.
+- Prisma edge client o Prisma Accelerate.
+- MCP SDK compatible con el runtime.
+- Conexion estable a PostgreSQL serverless.
 
-- Mayor alcance.
-- Requiere backend, permisos, componentes visuales y mantenimiento.
+## Complementos Futuros
+
+Estas ideas siguen siendo validas, pero no son el nucleo del requerimiento:
+
+- Preguntas sugeridas para CEO.
+- Catalogo de metricas ejecutivas.
+- Reportes automaticos.
+- Alertas inteligentes.
+- RAG para definiciones de negocio.
 
 ## Lectura Recomendada
 
-La estrategia inicial no debe escoger una unica opcion de forma prematura. Una
-ruta razonable es empezar MCP-first para gobernar acceso a datos, luego agregar
-catalogo de metricas, sugerencias y automatizaciones donde aporten valor real.
+La arquitectura base debe resolver primero web SSR, backend Fastify + Prisma,
+MCP remoto, Text-to-SQL seguro, PostgreSQL read-only y auditoria. Las
+automatizaciones y reportes proactivos deben tratarse como extensiones
+posteriores.

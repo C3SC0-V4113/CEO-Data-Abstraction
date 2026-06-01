@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Superseded by ADR-0002
 
 ## Date
 
@@ -65,8 +65,9 @@ Proponer una estrategia **MCP-first** como base de acceso a datos con IA,
 manteniendo las automatizaciones, RAG, agentes especializados y experiencia
 guiada como opciones complementarias de brainstorming.
 
-Esta decision queda en estado `Proposed` porque todavia se esta explorando el
-problema y no se ha cerrado la arquitectura final.
+Esta decision fue superada por ADR-0002, que incorpora el requerimiento
+actualizado de una web app Next.js SSR, backend Fastify + Prisma, MCP remoto y
+PostgreSQL read-only.
 
 ## Rationale
 

@@ -1,7 +1,7 @@
 # Strategy
 
-Esta carpeta contiene opciones y lineas de estrategia para resolver el problema
-de "hablar con la data" sin depender exclusivamente de un chat libre.
+Esta carpeta contiene opciones y lineas de estrategia para resolver el sistema
+Text-to-SQL asistido por IA con web SSR y MCP remoto.
 
 ## Documentos
 
@@ -10,5 +10,5 @@ de "hablar con la data" sin depender exclusivamente de un chat libre.
   hipotesis de brainstorming.
 - [guided-analytics-experience.md](guided-analytics-experience.md): experiencia
   guiada para usuarios que no saben que preguntar.
-- [mcp-first-access.md](mcp-first-access.md): acceso a datos mediante MCP y
-  herramientas controladas.
+- [mcp-first-access.md](mcp-first-access.md): servidor MCP remoto y herramientas
+  controladas sobre el mismo pipeline Fastify.

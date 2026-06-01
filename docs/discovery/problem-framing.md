@@ -1,44 +1,53 @@
 # Problem Framing
 
-## Redaccion Original del Ejercicio
+## Requerimiento Actualizado
 
-El ejercicio plantea que a muchas organizaciones les duele "hablar via chat con
-la data". Los ejemplos son preguntas de negocio:
+El requerimiento pide un sistema de consulta de datos asistido por IA
+Text-to-SQL, accesible desde dos frentes:
 
-- Como salieron mis ventas este mes?
-- Cual es mi mejor vendedor?
-- Me puedes dar un pronostico?
-- Dame una comparativa de mis ventas del mes pasado vs el presente.
+- Una aplicacion web propietaria con chat, tablas y graficas dinamicas.
+- Un servidor MCP remoto consumible por Claude Desktop, Cursor/Codex u otros
+  clientes compatibles.
 
-Tambien pide considerar que ya existe un medio para chatear, no necesariamente
-OpenClaw, y que la data debe consumirse por Codex o Claude via MCP.
+El sistema debe permitir consultas complejas en lenguaje natural y mantener una
+postura estricta de seguridad: autenticacion robusta, conexion de base de datos
+read-only y mitigacion explicita contra SQL injection.
 
-## Reinterpretacion
+## Usuario Objetivo
 
-El problema no es solamente conectar un chat a una base de datos. El problema es
-crear una experiencia confiable para que usuarios de negocio puedan obtener
-respuestas, explicaciones y acciones desde sus datos sin tener que dominar SQL,
-prompt engineering o la estructura interna de la base.
+El usuario objetivo sera el CEO de una empresa desarrolladora de software. Este
+usuario no quiere aprender SQL ni conocer la estructura de tablas. Quiere
+entender la salud de la compania con preguntas ejecutivas sobre revenue,
+clientes, proyectos, delivery, soporte, finanzas operativas y forecast.
 
-## Objetivo Real
+## Problema Real
 
-Reducir la friccion entre una pregunta de negocio y una respuesta accionable.
-Esto puede lograrse con chat, pero tambien con reportes proactivos, metricas
-predefinidas, preguntas sugeridas, alertas, dashboards guiados, RAG y agentes
-especializados.
+El problema no es solamente "hablar con la data". El problema es dar una
+interfaz confiable para que una persona ejecutiva convierta preguntas ambiguas
+en respuestas accionables, visualizaciones y evidencia verificable.
 
-## Caso Base
+Ejemplos:
 
-Se usara Ventas CRM como dominio de trabajo:
+- "Como va el MRR este mes?"
+- "Que proyectos estan atrasados o en riesgo?"
+- "Cual es nuestro churn?"
+- "Cuanto runway tenemos?"
+- "Que clientes tienen mas tickets criticos?"
+- "Cual es el forecast de ventas del trimestre?"
 
-- Ventas por periodo.
-- Ranking de vendedores.
-- Cumplimiento de metas.
-- Comparativas mes contra mes.
-- Forecast de ventas.
-- Rendimiento y alertas por vendedor, zona o producto.
+## Objetivo de la Aplicacion
+
+Construir una base de arquitectura para un producto que:
+
+- Traduzca lenguaje natural a SQL de solo lectura.
+- Use Next.js SSR + shadcn/ui para una experiencia web ejecutiva.
+- Exponga las mismas capacidades por MCP remoto.
+- Genere tablas y graficas dinamicas desde los resultados.
+- Audite cada consulta y cada SQL generado.
+- Proteja la base con usuario read-only, allowlists y validacion SQL.
 
 ## Principio de Diseno
 
-El LLM no deberia consultar la base con SQL libre. Debe operar sobre herramientas
-controladas, metricas definidas y conocimiento de negocio verificable.
+El LLM puede generar SQL candidato, pero nunca debe ejecutarse sin validacion.
+La seguridad no depende solo del prompt: debe existir un SQL Safety Layer y un
+rol de base de datos con permisos estrictos de lectura.

@@ -2,9 +2,10 @@
 
 ## Negocio
 
-- Quienes seran los usuarios principales: gerencia, ventas, analistas o
-  ejecutivos?
-- Que significa "mejor vendedor" para la organizacion?
+- El usuario principal sera solo el CEO o tambien habra CFO, COO y lideres de
+  area?
+- Que metricas ejecutivas son oficiales: MRR, ARR, churn, margen, runway,
+  pipeline, SLA?
 - Que metricas son oficiales y cuales son exploratorias?
 - Que decisiones espera tomar el usuario despues de recibir una respuesta?
 
@@ -12,8 +13,9 @@
 
 - La data vive en una base transaccional, un data warehouse o archivos?
 - Hay historico suficiente para forecast?
-- Existen metas comerciales formalizadas?
-- Como se manejan monedas, devoluciones, descuentos y anulaciones?
+- Existen definiciones formales para MRR, ARR, churn, expansion revenue y margen
+  por proyecto?
+- Como se manejan monedas, descuentos, credit notes y contratos cancelados?
 - Que tan confiable es la calidad de datos?
 
 ## IA y Seguridad
@@ -25,7 +27,8 @@
 
 ## Experiencia
 
-- El usuario prefiere chat libre, botones guiados, dashboard o reportes?
+- El CEO prefiere chat libre, preguntas sugeridas, dashboard ejecutivo o
+  reportes?
 - Que consultas deberian ser sugeridas por defecto?
 - Que automatizaciones realmente ahorran tiempo y cuales podrian generar ruido?
 - Como se medira si se redujo la dependencia del chat?

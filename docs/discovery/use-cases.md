@@ -1,51 +1,52 @@
 # Use Cases
 
-## Ventas del Mes
+## Revenue Ejecutivo
 
-El usuario quiere saber el resultado de ventas del mes actual. La respuesta debe
-incluir total vendido, comparacion contra meta, variacion contra el mes anterior
-y una breve explicacion de los principales cambios.
+El CEO pregunta por MRR, ARR, ventas mensuales, crecimiento contra el mes
+anterior y forecast. La respuesta debe incluir cifras, variacion, tendencia y
+una grafica de linea o KPI segun corresponda.
 
-## Mejor Vendedor
+## Churn y Clientes en Riesgo
 
-El usuario quiere identificar el vendedor con mejor rendimiento. La metrica debe
-aclarar si "mejor" significa ventas totales, margen, cumplimiento de meta,
-crecimiento o cantidad de clientes nuevos.
+El CEO quiere entender perdida de clientes, expansion revenue, cuentas en riesgo
+y clientes con senales de deterioro. La respuesta debe explicar la metrica usada
+y listar clientes relevantes si el rol tiene permiso.
 
-## Comparativa Mes Pasado vs Mes Actual
+## Pipeline Comercial
 
-El usuario quiere comparar dos periodos. La respuesta debe mostrar variacion
-absoluta, variacion porcentual y principales factores por vendedor, producto,
-zona o canal.
+El CEO pregunta por pipeline, oportunidades por etapa, conversion y forecast de
+cierre. La visualizacion sugerida puede ser barras por etapa o tabla de
+oportunidades principales.
 
-## Forecast de Ventas
+## Proyectos en Riesgo
 
-El usuario quiere un pronostico. La respuesta debe indicar horizonte, supuestos,
-metodo usado, confianza y advertencias sobre calidad de datos.
+El CEO quiere saber que proyectos estan atrasados, fuera de presupuesto o con
+margen bajo. La respuesta debe mostrar evidencia: fecha comprometida, avance,
+horas consumidas, presupuesto y responsable.
 
-## Rendimiento de Empleados o Vendedores
+## Margen por Proyecto
 
-El usuario quiere entender desempeno. La solucion debe evitar juicios opacos y
-usar metricas claras: ventas, conversion, cumplimiento de meta, actividad,
-retencion de clientes o calidad de pipeline.
+El CEO pregunta que proyectos dejaron mejor o peor margen. El sistema debe
+consultar views analiticas y evitar exponer detalles sensibles innecesarios.
 
-## Reportes Recurrentes
+## Soporte y SLA
 
-El usuario no quiere preguntar lo mismo cada semana o mes. El sistema puede
-generar resumenes, detectar cambios y entregar recomendaciones de forma
-programada.
+El CEO quiere conocer tickets abiertos, tickets criticos, cumplimiento de SLA y
+clientes con mayor volumen de soporte. La respuesta debe permitir tabla y grafica
+por prioridad o cliente.
 
-## Alertas Inteligentes
+## Finanzas Operativas
 
-El usuario quiere saber cuando algo requiere atencion: caida de ventas, vendedor
-por debajo de meta, producto con demanda anomala o region con crecimiento
-inusual.
+El CEO pregunta por burn rate, runway, costos por area, margen bruto o variacion
+de gastos. Si la pregunta es ambigua, el sistema debe pedir aclaracion o sugerir
+metricas disponibles.
 
-## Exploracion Guiada
+## Preguntas Sugeridas para CEO
 
-El sistema sugiere preguntas siguientes:
+El sistema debe proponer preguntas utiles sin depender de prompt engineering:
 
-- "Quieres ver que vendedores explican esta caida?"
-- "Quieres comparar contra la meta?"
-- "Quieres generar un reporte ejecutivo?"
-- "Quieres revisar productos con mayor crecimiento?"
+- "Mostrar MRR y crecimiento de los ultimos 6 meses."
+- "Listar proyectos con margen menor al 20%."
+- "Identificar clientes con tickets criticos abiertos."
+- "Comparar pipeline actual contra el mes pasado."
+- "Generar forecast de ventas del trimestre."

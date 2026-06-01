@@ -1,25 +1,15 @@
 # Architecture
 
-Esta carpeta queda reservada para el dibujo final de arquitectura.
+Esta carpeta contiene la propuesta de arquitectura de Fase 1.
 
-## Estado
+## Documentos
 
-Pendiente. Primero se estabilizara la estrategia y luego se dibujara la
-arquitectura.
+- [proposal.md](proposal.md): arquitectura Text-to-SQL con Next.js SSR,
+  Fastify, Prisma ORM, MCP remoto, PostgreSQL read-only y despliegue
+  considerando Cloudflare o Railway.
 
-## Elementos Probables
+## Pendiente
 
-- Fuentes de datos Ventas CRM.
-- Base de datos o data warehouse.
-- Capa semantica de metricas.
-- MCP server con herramientas allowlisted.
-- Servicio de RAG para conocimiento documental.
-- Agentes especializados.
-- Jobs de snapshots, reportes y alertas.
-- Cliente Codex o Claude.
-- Posible app React tipo dashboard + copiloto.
-
-## Nota
-
-El diagrama debe evitar presentar las automatizaciones como decision cerrada.
-Deben mostrarse como capacidad opcional o modulo evaluable.
+El diagrama visual de arquitectura se dibujara despues de estabilizar el texto.
+Debe incluir web SSR, backend Fastify, Prisma ORM, endpoint MCP, LLM
+Orchestrator, SQL Safety Layer, PostgreSQL serverless, auditoria y despliegue.

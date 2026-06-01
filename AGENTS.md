@@ -15,10 +15,14 @@ Instrucciones para agentes y asistentes que trabajen en este repositorio.
 - Priorizar discovery, estrategia y ADRs antes de proponer codigo.
 - Mantener las automatizaciones como hipotesis de brainstorming hasta que un ADR
   las acepte formalmente.
-- No asumir que existe una base de datos productiva. Usar el dominio Ventas CRM
-  solo como caso de referencia.
-- No permitir SQL libre generado por un LLM como recomendacion por defecto.
-  Preferir herramientas MCP allowlisted, metricas gobernadas y capa semantica.
+- No asumir que existe una base de datos productiva. Usar el dominio "CEO de
+  empresa desarrolladora de software" como caso de referencia.
+- No permitir SQL libre generado por un LLM como recomendacion por defecto. El
+  SQL debe pasar por un SQL Safety Layer y ejecutarse con rol PostgreSQL
+  read-only.
+- Mantener la decision tecnica vigente: Next.js SSR + shadcn/ui, Fastify +
+  TypeScript, Prisma ORM, MCP remoto, PostgreSQL serverless y despliegue
+  considerando Cloudflare o Railway.
 
 ## Documentacion
 
@@ -26,7 +30,8 @@ Instrucciones para agentes y asistentes que trabajen en este repositorio.
 - Las dudas, supuestos y preguntas abiertas deben ir en `docs/discovery/`.
 - Los terminos ambiguos deben agregarse al glosario en `docs/glossary/README.md`.
 - Las opciones de solucion deben compararse en `docs/strategy/`.
-- El diagrama de arquitectura se agregara despues de estabilizar la estrategia.
+- La propuesta de arquitectura vive en `docs/architecture/proposal.md`.
+- El diagrama visual se agregara despues de estabilizar la arquitectura textual.
 
 ## ADRs
 
