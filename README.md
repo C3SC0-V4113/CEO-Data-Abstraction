@@ -28,15 +28,18 @@ tokens/API keys.
 - **Frontend web**: Next.js fullstack con SSR + shadcn/ui, desplegado en
   Cloudflare Workers usando OpenNext/Cloudflare. La UI principal sera un
   dashboard ejecutivo con reportes, KPIs, tablas y graficas.
+- **Login MVP**: un solo usuario CEO creado por seed/setup; no habra registro
+  publico ni multiusuario en MVP.
 - **Backend principal**: Fastify + TypeScript para APIs, MCP remoto,
   autenticacion, orquestacion LLM, validacion SQL y acceso read-only a datos.
 - **Despliegue backend**: Railway recomendado para MVP con Fastify + Prisma;
   Cloudflare Workers como opcion si Prisma edge/Accelerate y MCP funcionan en la
   prueba tecnica.
 - **MCP remoto**: endpoint seguro `https://.../mcp`, consumible por Claude
-  Desktop, Cursor/Codex u otros clientes compatibles.
+  Desktop, Cursor/Codex u otros clientes compatibles. La web no consume MCP
+  directamente.
 - **ORM y base de datos**: Prisma ORM sobre PostgreSQL serverless,
-  preferiblemente Neon Free, Supabase Free o Railway Postgres.
+  preferiblemente Railway Postgres para MVP.
 - **Seguridad**: usuario de base de datos estrictamente read-only, validacion SQL
   por AST, allowlist de views/tablas, `LIMIT`, timeouts, max rows y auditoria.
 - **Ingestion MVP**: datos ficticios en PostgreSQL generados por Prisma seed,
@@ -85,4 +88,4 @@ restricciones de seguridad, las tecnologias y el despliegue.
 3. Leer la arquitectura de Fase 1 en [docs/architecture/proposal.md](docs/architecture/proposal.md).
 4. Revisar dashboard/reporting en [docs/strategy/dashboard-reporting.md](docs/strategy/dashboard-reporting.md).
 5. Revisar MCP en [docs/strategy/mcp-first-access.md](docs/strategy/mcp-first-access.md).
-6. Leer el ADR nuevo en [docs/adr/0003-adopt-report-first-dashboard-with-contextual-chat.md](docs/adr/0003-adopt-report-first-dashboard-with-contextual-chat.md).
+6. Leer la decision de login/despliegue en [docs/adr/0004-adopt-single-ceo-login-and-railway-backend-for-mvp.md](docs/adr/0004-adopt-single-ceo-login-and-railway-backend-for-mvp.md).

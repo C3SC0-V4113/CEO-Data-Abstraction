@@ -9,7 +9,9 @@ global o contextual, pero no debe ser la primera forma de obtener informacion.
 ## Ingestion de Datos
 
 Para el MVP se usara PostgreSQL con datos ficticios generados por Prisma seed.
-No se conectara a sistemas productivos.
+No se conectara a sistemas productivos. La base y el backend se desplegaran de
+preferencia en Railway para simplificar Prisma, conexiones y operaciones del
+MVP.
 
 El seed debe crear:
 

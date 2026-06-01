@@ -13,6 +13,11 @@ El servidor MCP vivira dentro del backend Fastify o como modulo montado en el
 mismo runtime. Las tools MCP no duplican logica: llaman los mismos servicios
 internos que usa `POST /api/chat/query`.
 
+MCP no es la API del frontend. La web SSR consume endpoints HTTP propios de
+Fastify, como `/api/dashboard/*`, `/api/reports/*` y `/api/chat/*`. MCP queda
+como canal externo para Claude Desktop, Cursor/Codex u otros clientes
+compatibles.
+
 ## Endpoint
 
 El endpoint objetivo sera:
@@ -24,6 +29,9 @@ Authorization: Bearer <token>
 
 El transporte debe ser HTTP remoto compatible con MCP. El servidor debe validar
 token/API key antes de exponer schema, tools o cualquier metadata.
+
+El token se configurara como secreto `MCP_API_KEY`. El frontend no debe recibir
+ni usar este secreto.
 
 ## Tools MCP Candidatas
 
@@ -67,13 +75,15 @@ Las tools deben devolver una estructura compatible con la web app:
 - Requerir bearer token en cada request.
 - No exponer schema antes de autenticar.
 - Separar tokens MCP de credenciales de base de datos y proveedor LLM.
+- Separar MCP auth de web auth.
+- No exponer `MCP_API_KEY` al browser.
 - Aplicar scope por tool.
 - Auditar cliente, usuario, pregunta, SQL generado, SQL validado y resultado.
 - Ejecutar contra PostgreSQL con usuario read-only.
 
 ## Flujo End-to-End
 
-1. Cliente MCP envia pregunta con token.
+1. Cliente MCP externo envia pregunta con token.
 2. Fastify valida token y scope.
 3. MCP tool llama al LLM Orchestrator interno.
 4. El orchestrator genera SQL candidato.

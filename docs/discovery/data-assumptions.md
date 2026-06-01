@@ -5,9 +5,9 @@ requerimiento en una empresa desarrolladora de software.
 
 ## Base de Datos
 
-La base principal propuesta es PostgreSQL serverless, preferiblemente Neon Free,
-Supabase Free o Railway Postgres. La aplicacion debe usar Prisma ORM con un rol
-read-only en runtime y permisos `SELECT` solo sobre views/tablas permitidas.
+La base principal propuesta para MVP es PostgreSQL en Railway. La aplicacion
+debe usar Prisma ORM con un rol read-only en runtime y permisos `SELECT` solo
+sobre views/tablas permitidas.
 
 Se separan credenciales:
 
@@ -17,6 +17,34 @@ Se separan credenciales:
 Si el backend vive en Railway, Prisma Client se conecta de forma tradicional a
 PostgreSQL. Si vive en Cloudflare Workers, debe validarse Prisma edge/Accelerate
 o una estrategia compatible con Workers.
+
+## Auth Seed
+
+El MVP tendra un solo usuario CEO y no tendra registro publico. El usuario se
+crea durante seed/setup.
+
+### users
+
+- `id`
+- `email`
+- `password_hash`
+- `role`
+- `name`
+- `created_at`
+- `last_login_at`
+
+### sessions
+
+- `id`
+- `user_id`
+- `expires_at`
+- `created_at`
+
+Secrets relacionados:
+
+- `CEO_EMAIL`
+- `CEO_PASSWORD_HASH`
+- `MCP_API_KEY`
 
 ## Datos Ficticios y Seed
 
@@ -34,6 +62,8 @@ El dataset inicial debe cubrir:
 - Horas registradas por proyecto.
 - Tickets de soporte por prioridad y SLA.
 - Gastos por area para burn rate y runway.
+- Anomalies intencionales para probar alertas, explicacion de cambios y
+  preguntas contextuales.
 
 ## Tablas Fuente Candidatas
 
@@ -242,3 +272,5 @@ AST, allowlist y permisos read-only de base de datos.
 
 El dashboard ejecutivo no depende de que el usuario escriba prompts. Las
 preguntas importantes deben estar abstraidas como reportes, graficos o KPIs.
+
+La web consume APIs Fastify propias; no consume MCP directamente.

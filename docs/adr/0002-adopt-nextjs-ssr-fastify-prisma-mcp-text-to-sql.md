@@ -28,7 +28,8 @@ datos read-only y mitigacion contra SQL injection.
 - Backend TypeScript adecuado para Fastify, validacion, MCP y orquestacion LLM.
 - MCP remoto end-to-end usando la misma logica que la web.
 - Base de datos con roles read-only reales.
-- Despliegue priorizando Cloudflare y servicios gratuitos.
+- Despliegue priorizando Cloudflare para frontend y Railway para backend +
+  PostgreSQL en MVP.
 - Prisma ORM para modelos tipados, migraciones y una conexion limpia a
   PostgreSQL.
 - Seguridad por capas, no solo por prompt.
@@ -68,7 +69,8 @@ Adoptar:
 - Prisma ORM como capa de acceso a PostgreSQL.
 - PostgreSQL serverless como base principal.
 - Cloudflare Workers como despliegue prioritario para Next.js SSR.
-- Railway como opcion recomendada para MVP del backend Fastify + Prisma.
+- Railway como opcion recomendada para MVP del backend Fastify + Prisma y
+  PostgreSQL.
 - Cloudflare Workers como opcion de backend si Prisma edge/Accelerate y el MCP
   SDK funcionan correctamente.
 
@@ -100,8 +102,8 @@ falla la validacion de aplicacion, la base aun debe rechazar escrituras.
 - Mantiene el backend preparado para Text-to-SQL, auditoria y data en
   TypeScript.
 - Prisma mejora claridad de modelos, migraciones y acceso a PostgreSQL.
-- Permite despliegue cercano al free tier usando Cloudflare y Postgres
-  serverless.
+- Permite despliegue cercano al free tier usando Cloudflare para frontend y
+  Railway para backend + Postgres.
 
 ### Negative
 

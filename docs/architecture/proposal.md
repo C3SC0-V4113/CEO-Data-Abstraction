@@ -17,17 +17,17 @@ Debe existir acceso desde dos frentes:
 | Capa | Tecnologia | Despliegue Preferido |
 | --- | --- | --- |
 | Frontend web | Next.js SSR + shadcn/ui | Cloudflare Workers con OpenNext/Cloudflare |
-| Backend API | Fastify + TypeScript | Railway recomendado para MVP; Cloudflare Workers como opcion |
+| Backend API | Fastify + TypeScript | Railway recomendado para MVP |
 | MCP remoto | Fastify + MCP TypeScript SDK | Mismo backend Fastify |
 | ORM | Prisma ORM | Backend Fastify |
-| Base de datos | PostgreSQL serverless | Neon Free, Supabase Free o Railway Postgres |
-| Conexion DB desde Cloudflare | Prisma Accelerate o Prisma Postgres, segun prueba tecnica | Cloudflare |
+| Base de datos | PostgreSQL | Railway Postgres recomendado para MVP |
 | Secretos | Workers Secrets | Cloudflare |
 | Reportes futuros | Queues/Workflows/R2 | Cloudflare opcional |
 
-Para un MVP con menor riesgo operativo, el backend Fastify + Prisma se
-desplegara en Railway. Cloudflare Workers queda como opcion si Prisma edge,
-Prisma Accelerate y el MCP SDK funcionan correctamente en la prueba tecnica.
+Para un MVP con menor riesgo operativo, el backend Fastify + Prisma y PostgreSQL
+se desplegaran en Railway. Cloudflare Workers queda como opcion futura para el
+backend si Prisma edge, Prisma Accelerate y el MCP SDK funcionan correctamente
+en una prueba tecnica. El frontend SSR se mantiene en Cloudflare Workers.
 
 ## Componentes
 
@@ -46,6 +46,11 @@ La web app sera una interfaz ejecutiva minimalista report-first:
 Las server actions o route handlers de Next.js se usaran para UI/session cuando
 convenga, pero las consultas de datos pasan por Fastify.
 
+La web no consume MCP directamente. MCP es un canal externo para clientes como
+Claude Desktop, Cursor/Codex u otros. La web usa APIs HTTP propias de Fastify
+para evitar duplicar abstracciones y exponer una superficie innecesaria en el
+browser.
+
 Rutas SSR propuestas:
 
 - `/dashboard`
@@ -61,6 +66,9 @@ Rutas SSR propuestas:
 
 Fastify sera el backend principal:
 
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
+- `GET /api/auth/session`
 - `POST /api/chat/query`
 - `POST /api/chat/report-question`
 - `GET /api/dashboard/overview`
@@ -77,6 +85,19 @@ Fastify sera el backend principal:
 
 Fastify concentra autenticacion, MCP, LLM Orchestrator, validacion SQL,
 ejecucion read-only, auditoria y respuesta comun en TypeScript.
+
+### Authentication
+
+El MVP tendra login obligatorio y un solo usuario CEO. No habra registro publico
+ni multiusuario.
+
+El usuario CEO se crea por seed/setup. Las credenciales reales no deben quedar
+documentadas en texto plano; se configuraran con secretos o hash:
+
+- `CEO_EMAIL`
+- `CEO_PASSWORD_HASH`
+
+El rol disponible sera `CEO`. CFO, COO y lideres de area quedan fuera del MVP.
 
 ### Data Ingestion and Reporting
 
@@ -144,7 +165,8 @@ Se usaran dos credenciales:
 - `DATABASE_URL_READONLY`: usada por Fastify/Prisma en runtime.
 
 El usuario runtime debe ser read-only con permisos `SELECT` solo sobre views
-analiticas o tablas permitidas.
+analiticas o tablas permitidas. Railway Postgres sera la opcion favorita para el
+MVP por compatibilidad directa con Prisma Client y el backend Fastify.
 
 Views sugeridas:
 
@@ -175,6 +197,10 @@ Tools candidatas:
 
 Las tools MCP pueden consultar reportes existentes, pero la experiencia web debe
 priorizar graficos predefinidos antes que chat libre.
+
+MCP no reemplaza las APIs web. La web SSR consume `/api/dashboard/*`,
+`/api/reports/*` y `/api/chat/*`; MCP queda expuesto solo para clientes externos
+compatibles.
 
 ## Flujo de Datos
 
@@ -225,6 +251,7 @@ fuera del alcance.
 
 - Autenticacion obligatoria para web y MCP.
 - Bearer token/API key para MCP remoto.
+- Login web con usuario CEO seeded; sin registro publico.
 - Rol PostgreSQL read-only.
 - Prisma Client usando `DATABASE_URL_READONLY` en runtime.
 - Migraciones con `DATABASE_URL_MIGRATION` fuera del runtime de consulta.
@@ -234,6 +261,7 @@ fuera del alcance.
 - Auditoria de prompts, SQL generado, SQL validado, cliente y usuario.
 - No exponer schema sin autenticacion.
 - Separar tokens MCP de credenciales DB y LLM.
+- Separar auth web de MCP; el frontend no debe usar `MCP_API_KEY`.
 - No usar Prisma como unica barrera de seguridad; las raw queries generadas por
   IA solo pueden ejecutarse despues de validacion AST.
 

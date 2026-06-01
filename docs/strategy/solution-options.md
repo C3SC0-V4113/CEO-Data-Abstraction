@@ -76,12 +76,14 @@ Usar D1 para mantener todo dentro de Cloudflare.
 
 ### Railway
 
-Railway es la opcion recomendada para el MVP del backend Fastify + Prisma:
+Railway es la opcion recomendada para el MVP del backend Fastify + Prisma y
+PostgreSQL:
 
 - Node.js tradicional.
 - Prisma Client funciona de forma directa.
-- Buen encaje con PostgreSQL administrado.
+- Buen encaje con Railway Postgres o Postgres compatible.
 - Menos friccion para MCP SDK, build y dependencias.
+- Permite mantener backend y base de datos en el mismo proveedor durante MVP.
 
 ### Cloudflare Workers
 
