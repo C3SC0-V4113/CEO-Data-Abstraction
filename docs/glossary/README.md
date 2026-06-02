@@ -19,7 +19,17 @@ warnings, freshness y `trace_id`.
 ## Capa Semantica
 
 Definicion gobernada de metricas, dimensiones, filtros y relaciones. Evita que
-cada usuario o modelo interprete los datos de forma distinta.
+cada usuario o modelo interprete los datos de forma distinta. En este proyecto se
+implementa como una **capa de metricas headless propia** (ver ADR-0006 y
+`docs/architecture/semantic-layer-and-model-strategy.md`): el LLM produce un
+`MetricQuery` y un generador determinista compila el SQL sobre las views `ceo_*`.
+
+## Catalogo de Metricas
+
+Configuracion gobernada (YAML/JSON) que define cada metrica del MVP con `name`,
+`label`, `description`, `synonyms`, `grain`, `source_view`, `dimensions`,
+`filters_allowed`, `format` y `default_chart`. Funciona como documentacion, allowlist
+y contrato. Se entrega al LLM de forma compacta y cacheable, no como DDL crudo.
 
 ## Chart Spec
 
@@ -37,6 +47,12 @@ o KPIs generados bajo demanda.
 
 Experiencia asistida por IA que acompana al usuario dentro de una interfaz,
 normalmente combinando acciones guiadas, explicaciones y conversacion.
+
+## Fallback Text-to-SQL
+
+Camino secundario para preguntas exploratorias fuera de la cobertura del catalogo de
+metricas. El LLM genera SQL candidato (como en el enfoque original) que igual pasa por
+el SQL Safety Layer y el rol read-only. Se marca y audita como `path = fallback_sql`.
 
 ## Forecast
 
@@ -76,6 +92,13 @@ clientes posibles via MCP.
 Valor cuantificable de negocio, como ventas totales, margen, cumplimiento de
 meta o ticket promedio.
 
+## MetricQuery
+
+Objeto estructurado que el LLM produce en el camino semantico: `metric`,
+`dimensions`, `filters`, `time_range`, `compare_to` y `limit`. Se valida contra el
+catalogo de metricas (allowlist natural) y un generador determinista lo compila a SQL.
+El LLM no escribe SQL en este camino.
+
 ## Mini Chat de Grafica
 
 Panel contextual ligado a un `artifact_id` de tipo `chart`. Permite pedir
@@ -93,6 +116,13 @@ de la respuesta. No funciona como filtro. Los modos del MVP son `responder`,
 
 Pregunta que el sistema propone al usuario segun su contexto, rol, datos
 recientes o anomalias detectadas.
+
+## Prompt Caching
+
+Mecanismo de los proveedores de LLM que abarata los tokens de entrada estables entre
+interacciones (en este proyecto, el catalogo de metricas y el system prompt). En la
+fraccion de hits de cache, esos tokens se cobran a una tarifa menor; es la principal
+palanca de costo de la calculadora (`docs/cost/`).
 
 ## Prisma ORM
 
@@ -116,10 +146,19 @@ modo de composer si es seguro y hay datos suficientes.
 Rol inicial y unico del MVP. Aunque solo exista un usuario operativo, el backend
 debe validar el rol para limitar endpoints, tools, views, columnas y acciones.
 
+## Routing de Modelos (dos niveles)
+
+Estrategia para optimizar costo/calidad usando dos perfiles de modelo: un **nivel
+ligero** barato para clasificacion de intencion, aclaraciones, `chart_spec` y
+sugerencias; y un **nivel planificador** fuerte para NL -> `MetricQuery`, narrativa y
+analisis. El modelo se elige por configuracion y es intercambiable entre proveedores.
+
 ## Snapshot
 
-Resultado precomputado de una metrica en un momento o periodo. Sirve para
-consultas frecuentes, comparativas o reportes pesados.
+Resultado precomputado de una metrica en un momento o periodo. En el paradigma
+chatbot-first ya **no es una superficie separada** (no hay dashboards ni historico de
+reportes en el MVP): si se introduce, sera como cache interna o como job futuro
+(`docs/strategy/automated-insights.md`), no como vista propia.
 
 ## SQL Libre
 

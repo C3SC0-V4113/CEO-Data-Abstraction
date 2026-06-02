@@ -1,30 +1,43 @@
 flowchart LR
-  CEO["CEO user"]
-  Browser["Browser"]
-  Cloudflare["Cloudflare Workers\nNext.js SSR + shadcn/ui"]
-  RailwayApi["Railway\nFastify + TypeScript"]
-  MCP["Remote MCP endpoint\nPOST /mcp"]
-  Prisma["Prisma ORM"]
-  Postgres["Railway PostgreSQL\nread-only runtime user"]
-  Seed["Prisma seed\nfake MVP data"]
-  Reports["Report snapshots\nreport_definitions\nreport_snapshots\ndashboard_widgets"]
-  Safety["SQL Safety Layer\nAST parser + allowlists\nSELECT only"]
-  LLM["LLM Provider"]
-  Audit["query_audit_log"]
-  ExternalClients["Claude Desktop / Cursor / Codex\nMCP clients"]
+  subgraph client["Cliente"]
+    CEO["CEO user"]
+    Browser["Browser"]
+  end
+
+  subgraph cf["Frontend - Cloudflare Workers (proyecto Next.js SSR)"]
+    Next["Next.js SSR + shadcn/ui\nlogin + chatbot"]
+  end
+
+  subgraph railwayApi["Backend - Railway (proyecto Fastify + TypeScript)"]
+    MCP["Remote MCP endpoint\nPOST /mcp"]
+    Orchestrator["LLM Orchestrator"]
+    Semantic["Semantic Metric Layer\nmetric catalog + MetricQuery\ndeterministic SQL generator"]
+    Safety["SQL Safety Layer\nAST + allowlists\nSELECT only, LIMIT, timeout"]
+    Prisma["Prisma ORM"]
+    Audit["query_audit_log\npath: semantic | fallback_sql"]
+  end
+
+  subgraph railwayDb["Datos - Railway PostgreSQL"]
+    Postgres["PostgreSQL\nread-only runtime user\nceo_* views"]
+    Seed["Prisma seed\nfake MVP data"]
+  end
+
+  subgraph external["Servicios externos"]
+    LLM["LLM Provider\nPlanner: GPT-5.2\nLight: GPT-5 mini"]
+    ExternalClients["Claude Desktop / Cursor / Codex\nMCP clients"]
+  end
 
   CEO --> Browser
-  Browser --> Cloudflare
-  Cloudflare -->|"HTTP APIs\n/api/dashboard/*\n/api/reports/*\n/api/chat/*"| RailwayApi
-  Cloudflare -. "does not call MCP directly" .- MCP
+  Browser --> Next
+  Next -->|"HTTP APIs\n/api/auth/*\n/api/chat/*\n/api/schema/catalog"| Orchestrator
+  Next -. "does not call MCP directly" .- MCP
   ExternalClients -->|"Bearer token\nMCP_API_KEY"| MCP
-  MCP --> RailwayApi
-  RailwayApi --> Safety
-  RailwayApi --> Reports
-  RailwayApi --> LLM
+  MCP --> Orchestrator
+  Orchestrator -->|"compact metric catalog (cacheable)"| LLM
+  Orchestrator -->|"MetricQuery (default)\nor fallback SQL"| Semantic
+  Semantic -->|"deterministic SQL"| Safety
   Safety --> Prisma
   Prisma --> Postgres
   Seed --> Postgres
-  Postgres --> Reports
-  RailwayApi --> Audit
+  Orchestrator --> Audit
   MCP --> Audit

@@ -61,6 +61,17 @@ no vistas separadas.
 - Reportes automaticos no forman parte del MVP. Si se agregan despues, deben
   tratarse como nueva decision.
 
+### Capa Semantica y Modelos (ADR-0006)
+
+- Se adopta una capa de metricas headless propia. El camino por defecto es
+  NL -> `MetricQuery` -> SQL determinista sobre views `ceo_*`, no SQL libre.
+- Text-to-SQL libre queda como fallback auditado para preguntas fuera del catalogo.
+- El schema se entrega al LLM como catalogo de metricas compacto y cacheable, no como
+  DDL crudo; RAG sobre definiciones solo si el catalogo crece.
+- La capa de modelos es agnostica de proveedor con routing de dos niveles
+  (ligero + planificador). Default razonado: Claude Sonnet/Haiku, intercambiable por
+  configuracion. La decision por costo se apoya en `docs/cost/llm-cost-calculator.xlsx`.
+
 ### Experiencia
 
 - Login y chatbot son las unicas interfaces principales del MVP.
@@ -83,3 +94,10 @@ no vistas separadas.
 - Definir multi-moneda y reglas contables reales.
 - Activar reportes enviados por correo o Slack.
 - Evaluar tiempo real o near-real-time para soporte/proyectos.
+- Confirmar precios vigentes por proveedor para cerrar el presupuesto de la
+  calculadora de costos.
+- Definir el umbral de cobertura del catalogo de metricas (que % de preguntas debe
+  resolver el camino semantico antes de aceptar el fallback).
+- Decidir cuando activar RAG/embeddings sobre el catalogo (a partir de que tamano).
+- Evaluar si conviene migrar la capa semantica a dbt Semantic Layer al escalar a
+  multiples roles y fuentes.

@@ -1,13 +1,17 @@
+%% Infra: todas estas tablas viven en Railway PostgreSQL (proyecto backend Fastify).
+%% El catalogo de metricas (capa semantica) es configuracion YAML/JSON, no una tabla.
+%% Las views ceo_* se derivan de las tablas fuente y son la superficie read-only del LLM.
 erDiagram
   users ||--o{ sessions : owns
+  users ||--o{ conversations : starts
+  conversations ||--o{ chat_messages : contains
+  conversations ||--o{ chat_artifacts : produces
   customers ||--o{ subscriptions : has
   customers ||--o{ invoices : receives
   customers ||--o{ sales_opportunities : has
   customers ||--o{ projects : owns
   customers ||--o{ support_tickets : opens
   projects ||--o{ time_entries : tracks
-  report_definitions ||--o{ report_snapshots : generates
-  report_definitions ||--o{ dashboard_widgets : renders
   users ||--o{ query_audit_log : triggers
 
   users {
@@ -24,6 +28,40 @@ erDiagram
     uuid id
     uuid user_id
     datetime expires_at
+    datetime created_at
+  }
+
+  conversations {
+    uuid id
+    uuid user_id
+    string title
+    datetime created_at
+    datetime updated_at
+  }
+
+  chat_messages {
+    uuid id
+    uuid conversation_id
+    string role
+    string content
+    string intent_mode
+    datetime created_at
+  }
+
+  chat_artifacts {
+    uuid id
+    uuid conversation_id
+    string artifact_type
+    string question
+    string period
+    json source_views
+    string validated_sql
+    string summary
+    json data
+    json chart_spec
+    string freshness_status
+    json warnings
+    string trace_id
     datetime created_at
   }
 
@@ -107,68 +145,16 @@ erDiagram
     string currency
   }
 
-  report_definitions {
-    uuid id
-    string slug
-    string title
-    string category
-    string source_view
-    json default_filters
-    string refresh_policy
-    boolean enabled
-  }
-
-  report_snapshots {
-    uuid id
-    uuid report_id
-    datetime period_start
-    datetime period_end
-    datetime generated_at
-    int ttl_minutes
-    string freshness_status
-    json filters
-    string summary
-    json payload
-  }
-
-  dashboard_widgets {
-    uuid id
-    string route
-    uuid report_id
-    string widget_type
-    string title
-    int position
-    string default_chart_type
-    boolean ask_enabled
-  }
-
   query_audit_log {
     uuid id
     string trace_id
     uuid user_id
     string client_type
+    string path
     string question
+    json metric_query
     string generated_sql
     string validated_sql
     string validation_status
     datetime created_at
-  }
-
-  metric_snapshots {
-    uuid id
-    string metric_name
-    datetime period_start
-    datetime period_end
-    json dimensions
-    decimal value
-    datetime computed_at
-  }
-
-  report_jobs {
-    uuid id
-    string name
-    string frequency
-    string audience
-    json metric_scope
-    boolean enabled
   }

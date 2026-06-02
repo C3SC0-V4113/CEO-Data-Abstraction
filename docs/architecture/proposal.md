@@ -158,10 +158,13 @@ Responsabilidades:
 - Construir `output_plan` combinando modo y requisitos explicitos.
 - Cargar rol, permisos, schema y views permitidas.
 - Cargar contexto conversacional minimo.
-- Construir contexto para el LLM.
+- Construir contexto para el LLM (catalogo de metricas compacto, no DDL crudo).
 - Pedir aclaraciones si la pregunta es ambigua.
-- Generar SQL candidato cuando se requieran datos.
-- Enviar SQL al SQL Safety Layer.
+- Camino por defecto: producir un `MetricQuery` validado contra el catalogo de
+  metricas y dejar que la Capa Semantica compile el SQL de forma determinista.
+- Camino de fallback: generar SQL candidato solo para preguntas exploratorias fuera
+  de cobertura del catalogo (marcado como `path = fallback_sql`).
+- Enviar el SQL (semantico o fallback) al SQL Safety Layer.
 - Ejecutar SQL validado.
 - Generar respuesta ejecutiva.
 - Proponer visualizacion.
@@ -169,9 +172,33 @@ Responsabilidades:
 - Editar `chart_spec` de graficas existentes sin ejecutar SQL nuevo cuando solo
   cambie la configuracion visual.
 
+### Capa Semantica (Metric Layer)
+
+Capa headless ubicada entre el LLM Orchestrator y el SQL Safety Layer. Existe para
+que las cifras ejecutivas sean exactas y para que el sistema **falle en voz alta**
+(error o aclaracion) en vez de devolver un numero plausible pero incorrecto. El
+diseno completo esta en `docs/architecture/semantic-layer-and-model-strategy.md` y la
+decision en ADR-0006.
+
+Piezas:
+
+- **Catalogo de metricas** (YAML/JSON gobernado): define cada metrica oficial del MVP
+  con `name`, `label`, `description`, `synonyms`, `grain`, `source_view` (mapea a las
+  views `ceo_*`), `dimensions`, `filters_allowed`, `format` y `default_chart`. Funciona
+  como documentacion, allowlist y contrato a la vez.
+- **`MetricQuery`**: objeto estructurado que el LLM produce (`metric`, `dimensions`,
+  `filters`, `time_range`, `compare_to`, `limit`). Se valida contra el catalogo antes
+  de compilar nada; si no valida, se pide aclaracion o se cae al fallback.
+- **Generador SQL determinista**: compila `MetricQuery` -> SQL sobre las views `ceo_*`.
+  El LLM nunca escribe SQL en el camino semantico. El SQL generado igual pasa por el
+  SQL Safety Layer.
+
+El Text-to-SQL libre queda como **fallback** auditado para preguntas exploratorias
+fuera del catalogo, sujeto a las mismas barreras.
+
 ### SQL Safety Layer
 
-Valida el SQL antes de ejecutarlo:
+Valida el SQL antes de ejecutarlo (tanto el del camino semantico como el del fallback):
 
 - Solo permite `SELECT`.
 - Bloquea DDL, DML y multiples statements.
@@ -247,7 +274,9 @@ reemplaza las APIs web. La web SSR consume `/api/auth/*`, `/api/chat/*` y
    `explicit_prompt_requirements` en un `output_plan`.
 6. El LLM Orchestrator carga contexto permitido y estado conversacional.
 7. Si falta informacion, el sistema pide aclaracion.
-8. Si requiere datos, el LLM genera SQL candidato.
+8. Si requiere datos, el LLM produce un `MetricQuery` validado contra el catalogo de
+   metricas; la Capa Semantica lo compila a SQL de forma determinista. Si la pregunta
+   esta fuera de cobertura, cae al fallback Text-to-SQL (auditado).
 9. SQL Safety Layer valida por AST, allowlists, rol y limites.
 10. Database Layer ejecuta con usuario read-only.
 11. El backend genera narrativa, tabla/grafica/KPI, reporte o plan de accion
@@ -273,8 +302,8 @@ reemplaza las APIs web. La web SSR consume `/api/auth/*`, `/api/chat/*` y
 
 1. El CEO o usuario tecnico pregunta desde un cliente MCP.
 2. Fastify valida token y scope.
-3. El LLM Orchestrator carga schema permitido y definiciones.
-4. El LLM genera SQL candidato si hace falta.
+3. El LLM Orchestrator carga el catalogo de metricas permitido y definiciones.
+4. El LLM produce un `MetricQuery` (o cae al fallback Text-to-SQL) si hace falta.
 5. SQL Safety Layer valida el SQL.
 6. Database Layer ejecuta con usuario read-only.
 7. Fastify registra auditoria y devuelve narrativa, datos y warnings.
@@ -284,15 +313,47 @@ reemplaza las APIs web. La web SSR consume `/api/auth/*`, `/api/chat/*` y
 El contexto enviado al LLM debe incluir solo lo necesario:
 
 - Rol del usuario.
-- Views y columnas permitidas.
-- Definiciones de metricas.
-- Reglas de formato SQL.
+- Catalogo de metricas permitido (no DDL crudo).
+- Definiciones de metricas y sinonimos.
+- Reglas del contrato `MetricQuery`.
 - Limites de seguridad.
 - Historial conversacional minimo.
 - Ultimo artefacto relevante, si aplica.
 
 No debe incluir secretos, credenciales, tablas bloqueadas ni datos sensibles
 fuera del alcance.
+
+### Estrategia de entrega de schema al LLM
+
+No se vuelca el DDL completo. Se usan tres capas, de barata a cara, prefiriendo la
+mas barata que responda (detalle en `docs/architecture/semantic-layer-and-model-strategy.md`):
+
+1. **Catalogo de metricas compacto** en el system prompt, estable entre interacciones
+   y por tanto cacheable con prompt caching (amortiza su costo en tokens).
+2. **Recuperacion selectiva (RAG)** de las metricas relevantes por embedding de la
+   pregunta, solo si el catalogo crece mas alla de lo que conviene mantener en contexto.
+3. **Detalle on-demand** via `GET /api/schema/catalog` o la tool MCP
+   `describe_business_schema`, que devuelven el catalogo permitido por rol.
+
+### Estrategia de modelos
+
+La capa de modelos es agnostica de proveedor y se elige por configuracion
+(`LLM_PROVIDER`, `ORCHESTRATOR_MODEL`, `LIGHT_MODEL`). Se usa **routing de dos niveles**:
+
+- **Nivel ligero** (clasificacion de intencion, aclaraciones, `chart_spec`, sugerencias,
+  ediciones visuales): modelo barato/rapido.
+- **Nivel planificador** (NL -> `MetricQuery`, narrativa, analisis, fallback): modelo
+  fuerte en razonamiento estructurado.
+
+**Modelos definidos (default): GPT-5.2 como planificador y GPT-5 mini como nivel
+ligero** (ambos OpenAI). Se eligieron cruzando exactitud (la familia GPT-5.x lidera el
+benchmark de capa semantica de dbt) y costo (la calculadora `docs/cost/`): GPT-5.2 corre
+~22% mas barato por interaccion que Claude Sonnet 4.6 y tiene la tarifa de input cacheado
+mas baja, clave para nuestra estrategia de prompt caching. La capa de modelos es
+intercambiable por configuracion (`ORCHESTRATOR_MODEL`, `LIGHT_MODEL`); Gemini 2.5
+Pro/Flash es la alternativa mas barata y Claude Sonnet/Haiku la de mayor exactitud
+publicada no-Codex. Analisis y fuentes en `docs/cost/README.md` y
+`docs/architecture/semantic-layer-and-model-strategy.md`.
 
 ## Seguridad
 

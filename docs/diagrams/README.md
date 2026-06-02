@@ -5,10 +5,20 @@ arquitectura, modelo de datos, flujos y wireframes del MVP.
 
 ## Estado
 
-Los diagramas actuales fueron creados antes del cambio a experiencia
-chat-first. La arquitectura textual vigente esta en
-`docs/architecture/proposal.md` y ADR-0005. Estos diagramas deben regenerarse
-despues de estabilizar la arquitectura textual.
+Los **Mermaid** (`mermaid/*.mmd`) ya estan actualizados a la experiencia chat-first
+con capa semantica y son la **fuente de verdad textual**. La arquitectura vigente esta
+en `docs/architecture/proposal.md`, ADR-0005 y ADR-0006.
+
+Los Mermaid estan **agrupados por infraestructura/proyecto**: Cliente, Frontend
+(Cloudflare Workers / Next.js), Backend (Railway / Fastify), Datos (Railway PostgreSQL)
+y Servicios externos (LLM Provider y clientes MCP). Los flowcharts usan `subgraph` y los
+diagramas de secuencia usan `box` (requiere Mermaid >= 9.4; soportado por mermaid.live y
+GitHub). El modelo LLM definido aparece nombrado: **GPT-5.2** (planificador) y
+**GPT-5 mini** (ligero).
+
+Los **drawio/xml** todavia reflejan el paradigma report-first y estan **pendientes de
+regenerar** a partir de los Mermaid. Las instrucciones por archivo estan en
+`docs/diagrams/REGENERATION-SPEC.md`.
 
 ## Estructura
 
@@ -20,21 +30,25 @@ docs/diagrams/
   assets/   Politica de logos e imagenes.
 ```
 
-## Diagramas Pendientes de Realinear
+## Diagramas Pendientes de Realinear (drawio/xml)
 
-- [architecture](drawio/architecture.drawio): pendiente de actualizar a login,
-  chatbot, Fastify, Prisma, PostgreSQL, MCP externo, LLM y SQL Safety Layer.
-- [database-model](drawio/database-model.drawio): pendiente de actualizar con
-  conversaciones, mensajes, artefactos de chat, auth, auditoria y views
-  `ceo_*`.
-- [use-cases-and-flows](drawio/use-cases-and-flows.drawio): pendiente de
-  actualizar a flujo login -> chat -> artefacto.
-- [frontend-flow](drawio/frontend-flow.drawio): pendiente de actualizar a flujo
-  SSR de login y chatbot.
-- [mcp-flow](drawio/mcp-flow.drawio): flujo externo MCP con bearer token,
-  orquestador, SQL Safety Layer y PostgreSQL.
-- [ui-wireframes](drawio/ui-wireframes.drawio): pendiente de actualizar a login
-  y chatbot con artefactos embebidos.
+Ver el detalle por archivo (nodos, aristas, que eliminar) en
+[REGENERATION-SPEC.md](REGENERATION-SPEC.md). Resumen:
+
+- [architecture](drawio/architecture.drawio): login, chatbot, Fastify, LLM
+  Orchestrator, **Capa Semantica/Metric Layer**, SQL Safety Layer, Prisma,
+  PostgreSQL `ceo_*`, MCP externo. Sin dashboards/reportes/snapshots.
+- [database-model](drawio/database-model.drawio): conversations, chat_messages,
+  chat_artifacts, auth, auditoria con `path`/`metric_query`. Sin
+  report_definitions/report_snapshots/dashboard_widgets.
+- [use-cases-and-flows](drawio/use-cases-and-flows.drawio): login -> chat ->
+  MetricQuery/fallback -> SQL Safety Layer -> artefacto.
+- [frontend-flow](drawio/frontend-flow.drawio): SSR login + chatbot, MetricQuery,
+  capa semantica, mini-chat de grafica.
+- [mcp-flow](drawio/mcp-flow.drawio): MCP externo con bearer token, orquestador,
+  capa semantica, SQL Safety Layer y PostgreSQL.
+- [ui-wireframes](drawio/ui-wireframes.drawio): solo login y chatbot con artefactos
+  embebidos y mini-chat de grafica.
 
 ## Flujo Recomendado
 

@@ -56,9 +56,10 @@ backend Fastify. Codex y Claude son clientes posibles via MCP.
 El orchestrator coordina el flujo completo:
 
 1. Recibe la pregunta en lenguaje natural.
-2. Recupera el catalogo de schema, views y metricas permitidas.
+2. Recupera el catalogo de metricas permitidas (no DDL crudo).
 3. Construye contexto controlado para el modelo.
-4. Genera SQL candidato.
+4. Produce un `MetricQuery` que la capa semantica compila a SQL determinista
+   (o, fuera de cobertura, cae al fallback Text-to-SQL auditado).
 5. Valida el SQL antes de ejecutarlo.
 6. Ejecuta con credenciales read-only.
 7. Devuelve respuesta ejecutiva, datos, graficas, warnings y `trace_id`.
@@ -71,8 +72,11 @@ docs/
   discovery/      Problema, usuario CEO, casos de uso, datos asumidos y dudas.
   glossary/       Terminos compartidos del ejercicio.
   strategy/       Opciones de solucion y lineas de brainstorming.
-  architecture/   Propuesta de arquitectura y futuro diagrama.
+  architecture/   Propuesta de arquitectura y diseno de capa semantica/modelos.
+  cost/           Calculadora de costos LLM (.xlsx) y supuestos de tokens.
+  diagrams/       Mermaid (fuente textual) y drawio/xml editables.
 AGENTS.md         Instrucciones para agentes que trabajen en este repo.
+CLAUDE.md         Guia rapida para Claude Code (apunta a AGENTS.md).
 ```
 
 ## Estado Actual
@@ -90,4 +94,6 @@ restricciones de seguridad, las tecnologias y el despliegue.
 4. Revisar la estrategia vigente chat-first en [docs/strategy/guided-analytics-experience.md](docs/strategy/guided-analytics-experience.md).
 5. Revisar MCP en [docs/strategy/mcp-first-access.md](docs/strategy/mcp-first-access.md).
 6. Leer ADR-0005 en [docs/adr/0005-adopt-chatbot-first-guided-analytics-experience.md](docs/adr/0005-adopt-chatbot-first-guided-analytics-experience.md).
-7. Revisar diagramas en [docs/diagrams/README.md](docs/diagrams/README.md).
+7. Leer ADR-0006 y el diseno de capa semantica en [docs/architecture/semantic-layer-and-model-strategy.md](docs/architecture/semantic-layer-and-model-strategy.md).
+8. Revisar el costo en [docs/cost/README.md](docs/cost/README.md) y la calculadora `.xlsx`.
+9. Revisar diagramas en [docs/diagrams/README.md](docs/diagrams/README.md).

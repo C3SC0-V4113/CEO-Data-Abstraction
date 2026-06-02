@@ -1,19 +1,36 @@
 sequenceDiagram
   actor CEO
-  participant Next as Next.js SSR on Cloudflare
-  participant API as Fastify on Railway
-  participant DB as Railway PostgreSQL
-  participant Chat as Contextual Chat
+  box Cloudflare Workers (Next.js)
+  participant Next as Next.js SSR
+  end
+  box Railway - Fastify
+  participant API as Fastify API
+  participant Orch as LLM Orchestrator
+  participant Sem as Semantic Metric Layer
+  participant Safety as SQL Safety Layer
+  end
+  box Railway - Datos
+  participant DB as PostgreSQL (ceo_* views)
+  end
+  box Servicios externos
+  participant LLM as LLM Provider (GPT-5.2 / GPT-5 mini)
+  end
 
-  CEO->>Next: Open /dashboard
-  Next->>API: GET /api/dashboard/overview
-  API->>DB: Read report snapshots and views
-  DB-->>API: Report payloads
-  API-->>Next: KPIs, charts, freshness
-  Next-->>CEO: Render dashboard
-  CEO->>Next: Click Preguntar on chart
-  Next->>Chat: Open sidebar with report context
-  CEO->>Chat: Ask focused question
-  Chat->>API: POST /api/chat/report-question
-  API->>API: Use report context first
-  API-->>Chat: Answer, warnings, trace_id
+  CEO->>Next: Open /login then /chat
+  CEO->>Next: Ask question (mode: responder/analizar/reporte_visual/plan)
+  Next->>API: POST /api/chat/messages (content, intent_mode)
+  API->>Orch: Validate JWT+role, build output_plan
+  Orch->>LLM: NL + compact metric catalog (cacheable)
+  LLM-->>Orch: MetricQuery (or fallback SQL)
+  Orch->>Sem: MetricQuery
+  Sem->>Safety: Deterministic SQL
+  Safety->>DB: Validated SELECT (read-only)
+  DB-->>Safety: Rows
+  Safety-->>Orch: Result set
+  Orch-->>API: answer, data, chart_spec, warnings, trace_id
+  API-->>Next: Chat artifact (text/kpi/table/chart)
+  Next-->>CEO: Render artifact inside thread
+  CEO->>Next: Edit chart (mini-chat on artifact_id)
+  Next->>API: POST /api/chat/artifacts/:id/chart-edits
+  API->>LLM: Apply visual instruction (light model)
+  API-->>Next: updated_chart_spec (no new SQL if only visual)

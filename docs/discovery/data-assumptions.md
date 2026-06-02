@@ -182,8 +182,12 @@ El Text-to-SQL debe consultar preferentemente views gobernadas:
 ## Artefactos de Chat y Reportes Bajo Demanda
 
 Los reportes del MVP se generan dentro del chat segun la pregunta del CEO. Deben
-alimentarse desde views gobernadas y SQL validado, no desde SQL libre. Los
-snapshots programados y dashboards persistentes quedan como extension futura.
+alimentarse desde views gobernadas y SQL validado, no desde SQL libre. El camino por
+defecto es la capa semantica: el LLM produce un `MetricQuery` validado contra el
+catalogo de metricas y un generador determinista compila el SQL (ver ADR-0006 y
+`docs/architecture/semantic-layer-and-model-strategy.md`). El catalogo de metricas es
+configuracion versionada (YAML/JSON), no una tabla de la base. Los snapshots
+programados y dashboards persistentes quedan como extension futura.
 
 ### conversations
 
@@ -306,7 +310,9 @@ Registra cada interaccion web o MCP.
 - `trace_id`
 - `user_id`
 - `client_type`
+- `path` (`semantic` o `fallback_sql`)
 - `question`
+- `metric_query`
 - `generated_sql`
 - `validated_sql`
 - `validation_status`

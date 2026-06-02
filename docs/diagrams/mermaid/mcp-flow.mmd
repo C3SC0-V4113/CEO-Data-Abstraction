@@ -1,22 +1,33 @@
 sequenceDiagram
+  box Servicios externos
   actor Client as MCP Client
+  participant LLM as LLM Provider (GPT-5.2 / GPT-5 mini)
+  end
+  box Railway - Fastify
   participant MCP as Fastify MCP Endpoint
   participant Auth as API Key Auth
   participant Orch as LLM Orchestrator
+  participant Sem as Semantic Metric Layer
   participant Safety as SQL Safety Layer
   participant Prisma as Prisma ORM
-  participant DB as Railway PostgreSQL
   participant Audit as query_audit_log
+  end
+  box Railway - Datos
+  participant DB as PostgreSQL (ceo_* views)
+  end
 
   Client->>MCP: POST /mcp with Bearer token
   MCP->>Auth: Validate MCP_API_KEY
   Auth-->>MCP: Scope accepted
-  MCP->>Orch: ask_company_data
-  Orch->>Safety: Validate SQL candidate
-  Safety-->>Orch: SELECT approved
-  Orch->>Prisma: Execute read-only query
+  MCP->>Orch: ask_company_data / describe_business_schema
+  Orch->>LLM: NL + compact metric catalog (cacheable)
+  LLM-->>Orch: MetricQuery (or fallback SQL)
+  Orch->>Sem: MetricQuery
+  Sem->>Safety: Deterministic SQL
+  Safety-->>Sem: SELECT approved
+  Sem->>Prisma: Execute read-only query
   Prisma->>DB: SELECT from ceo_* view
   DB-->>Prisma: Rows
-  Orch->>Audit: Store trace_id, SQL, client
+  Orch->>Audit: Store trace_id, path, MetricQuery, SQL, client
   Orch-->>MCP: Answer, data, warnings
   MCP-->>Client: MCP response

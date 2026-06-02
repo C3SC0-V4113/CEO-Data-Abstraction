@@ -1,17 +1,16 @@
 flowchart TB
-  Login["Login screen\nEmail\nPassword\nSign in\nNo registration"]
-  App["Authenticated app shell\nHeader\nSidebar menu"]
-  Dashboard["Dashboard overview\nKPI row\nMRR line chart\nRisk cards\nPreguntar buttons"]
-  Revenue["Revenue view\nMRR line\nNew vs expansion vs churn bars\nCustomer change table"]
-  Projects["Projects view\nMargin bars\nRisk table\nFilters"]
-  Chat["Floating chat/sidebar\nRecommended questions\nComposer\nBadges: Global, Reporte, Grafico, Exploratorio, Solo lectura"]
-  History["Reports history\nFilters: period, category, freshness\nSnapshot table"]
+  subgraph frontend["Frontend - Cloudflare Workers (proyecto Next.js SSR)"]
+    Login["Login screen\nEmail\nPassword\nSign in\nNo registration"]
+    Chat["Chatbot (only authenticated view)\nHeader\nConversation thread"]
+    Composer["Composer\nModes: responder / analizar / reporte_visual / plan\nSuggested questions + quick actions"]
+    Suggestions["Suggested questions\nWhat changed since last period?\nWhich projects need attention?\nWhich customers are most at risk?"]
+    Artifacts["Inline artifacts\ntext / kpi / table / chart\nfreshness + warnings + trace_id"]
+    MiniChart["Chart mini-chat\nvisual edits on artifact_id\n(no new SQL if only visual)"]
+  end
 
-  Login --> App
-  App --> Dashboard
-  App --> Revenue
-  App --> Projects
-  App --> History
-  Dashboard --> Chat
-  Revenue --> Chat
-  Projects --> Chat
+  Login --> Chat
+  Chat --> Composer
+  Chat --> Suggestions
+  Composer --> Artifacts
+  Suggestions --> Artifacts
+  Artifacts --> MiniChart
