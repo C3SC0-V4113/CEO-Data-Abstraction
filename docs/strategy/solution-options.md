@@ -1,32 +1,58 @@
 # Solution Options
 
-## Opcion Adoptada: Web SSR + MCP sobre Fastify + Prisma
+## Opcion Adoptada: Web Chat-First + MCP sobre Fastify + Prisma
 
 La solucion propuesta combina una web app ejecutiva en Next.js SSR + shadcn/ui
 con un servidor MCP remoto. Ambos frentes consumen el mismo backend Fastify +
 TypeScript, Prisma ORM y el mismo pipeline Text-to-SQL seguro.
 
+La web deja de ser dashboard/report-first. El MVP tendra login y una vista de
+chatbot donde el CEO solicita analisis, recibe narrativa ejecutiva y ve reportes
+generados bajo demanda dentro de la propia conversacion.
+
 ### Cuando Tiene Sentido
 
 - El entregable exige web app y MCP.
-- El usuario principal es un CEO que necesita graficas y respuestas ejecutivas.
-- Se requiere seguridad estricta y auditoria.
+- El usuario principal es un CEO que necesita respuestas ejecutivas sin conocer
+  SQL ni estructura de tablas.
+- Se quiere una interfaz minima: login y chatbot.
+- Se requiere seguridad estricta, JWT, roles, auditoria y SQL read-only.
 - Se quiere mantener TypeScript end-to-end para web, API, MCP y orquestacion.
 
 ### Ventajas
 
 - Unifica logica de negocio para web y MCP.
-- Next.js SSR permite una experiencia web moderna.
+- Next.js SSR permite una experiencia web moderna sin construir multiples
+  pantallas analiticas.
 - Fastify encaja con TypeScript, APIs de alto rendimiento, validacion y MCP.
 - Prisma aporta modelos tipados, migraciones y conexion limpia a PostgreSQL.
 - PostgreSQL permite roles read-only reales.
+- El chatbot puede generar tablas, graficas y KPIs segun la pregunta.
 
 ### Riesgos
 
-- Hay mas piezas de despliegue que en una app monolitica.
+- Un chat vacio puede depender demasiado de buenas preguntas sugeridas.
+- La continuidad conversacional debe manejar filtros y periodos con rigor.
 - Prisma en Cloudflare Workers requiere validacion edge y posiblemente Prisma
-  Accelerate.
+  Accelerate si el backend se mueve fuera de Railway.
 - Requiere una capa seria de validacion SQL.
+
+## Alternativa: Dashboard Report-First
+
+La aplicacion abre en un dashboard ejecutivo con reportes predefinidos y chat
+contextual secundario.
+
+### Ventajas
+
+- Reduce la necesidad de que el CEO formule preguntas desde cero.
+- Encaja bien con vistas SSR separadas y snapshots precomputados.
+- Facilita revisar KPIs frecuentes.
+
+### Riesgos
+
+- Ya no representa el cambio de paradigma actual.
+- Aumenta alcance de UI con rutas, widgets, filtros e historico.
+- Subordina el chatbot cuando la experiencia deseada ahora es conversacional.
 
 ## Alternativa: Next.js Fullstack Unico
 
@@ -54,7 +80,7 @@ Frontend estatico y backend Fastify central.
 
 ### Riesgos
 
-- No cumple la decision de usar Next.js fullstack con SSR.
+- No cumple la decision de usar Next.js SSR.
 - Menor capacidad de experiencia dinamica desde el servidor.
 
 ## Alternativa: Cloudflare D1 como Base Principal
@@ -98,15 +124,16 @@ Cloudflare Workers sigue siendo opcion para backend si la prueba tecnica valida:
 
 Estas ideas siguen siendo validas, pero no son el nucleo del requerimiento:
 
-- Preguntas sugeridas para CEO.
-- Catalogo de metricas ejecutivas.
+- Dashboards persistentes.
+- Historico formal de reportes.
 - Reportes automaticos.
 - Alertas inteligentes.
 - RAG para definiciones de negocio.
+- Exportacion y programacion de reportes.
 
 ## Lectura Recomendada
 
-La arquitectura base debe resolver primero web SSR, backend Fastify + Prisma,
-MCP remoto, Text-to-SQL seguro, PostgreSQL read-only y auditoria. Las
-automatizaciones y reportes proactivos deben tratarse como extensiones
-posteriores.
+La arquitectura base debe resolver primero login con JWT, chatbot ejecutivo,
+backend Fastify + Prisma, MCP remoto, Text-to-SQL seguro, PostgreSQL read-only y
+auditoria. Las automatizaciones, dashboards persistentes y reportes proactivos
+deben tratarse como extensiones posteriores.

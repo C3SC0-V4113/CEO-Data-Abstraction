@@ -1,16 +1,19 @@
-# Propuesta de Arquitectura: Text-to-SQL Web SSR + MCP
+# Propuesta de Arquitectura: Text-to-SQL Chatbot Web SSR + MCP
 
 ## Objetivo
 
 Construir un sistema de consulta de datos asistido por IA para un CEO de una
 empresa desarrolladora de software. El sistema debe aceptar lenguaje natural,
 generar SQL seguro de solo lectura, devolver respuestas ejecutivas y renderizar
-tablas o graficas dinamicas.
+tablas, KPIs o graficas dinamicas dentro de una experiencia de chatbot.
 
 Debe existir acceso desde dos frentes:
 
-- Web app fullstack con SSR.
+- Web app con login y chatbot ejecutivo.
 - Cliente MCP remoto compatible con Claude Desktop, Cursor/Codex u otros.
+
+La web ya no es report-first ni dashboard-first. Para el MVP, las interfaces
+propias son solo login y chatbot.
 
 ## Stack Propuesto
 
@@ -21,7 +24,8 @@ Debe existir acceso desde dos frentes:
 | MCP remoto | Fastify + MCP TypeScript SDK | Mismo backend Fastify |
 | ORM | Prisma ORM | Backend Fastify |
 | Base de datos | PostgreSQL | Railway Postgres recomendado para MVP |
-| Secretos | Workers Secrets | Cloudflare |
+| Auth web | JWT + rol `CEO` | Fastify + cookies httpOnly o bearer interno |
+| Secretos | Workers Secrets / Railway Variables | Segun capa |
 | Reportes futuros | Queues/Workflows/R2 | Cloudflare opcional |
 
 Para un MVP con menor riesgo operativo, el backend Fastify + Prisma y PostgreSQL
@@ -33,15 +37,16 @@ en una prueba tecnica. El frontend SSR se mantiene en Cloudflare Workers.
 
 ### Next.js SSR + shadcn/ui
 
-La web app sera una interfaz ejecutiva minimalista report-first:
+La web app sera una interfaz ejecutiva minimalista chat-first:
 
-- Dashboard ejecutivo como vista principal.
-- Reportes y graficas predefinidas.
-- Tablas.
-- Graficas de linea, barras, area y KPIs.
+- Login obligatorio.
+- Chatbot como unica vista autenticada.
 - Preguntas sugeridas para CEO.
-- Sidebar o burbuja de chat como soporte secundario.
-- Boton `Preguntar` en cada reporte/grafico para abrir chat contextual.
+- Acciones rapidas dentro del chat.
+- Respuestas con tablas, KPIs, graficas y narrativa.
+- Artefactos de reporte generados bajo demanda dentro del hilo.
+- Filtros conversacionales para periodo, cliente, proyecto, area o metrica.
+- Freshness, warnings y `trace_id` por respuesta.
 
 Las server actions o route handlers de Next.js se usaran para UI/session cuando
 convenga, pero las consultas de datos pasan por Fastify.
@@ -53,14 +58,10 @@ browser.
 
 Rutas SSR propuestas:
 
-- `/dashboard`
-- `/dashboard/revenue`
-- `/dashboard/customers`
-- `/dashboard/pipeline`
-- `/dashboard/projects`
-- `/dashboard/support`
-- `/dashboard/finance`
-- `/reports/history`
+- `/login`
+- `/chat`
+
+`/` debe redirigir a `/chat` si existe sesion valida o a `/login` si no existe.
 
 ### Fastify + TypeScript
 
@@ -69,27 +70,22 @@ Fastify sera el backend principal:
 - `POST /api/auth/login`
 - `POST /api/auth/logout`
 - `GET /api/auth/session`
-- `POST /api/chat/query`
-- `POST /api/chat/report-question`
-- `GET /api/dashboard/overview`
-- `GET /api/reports/revenue`
-- `GET /api/reports/customers`
-- `GET /api/reports/pipeline`
-- `GET /api/reports/projects`
-- `GET /api/reports/support`
-- `GET /api/reports/finance`
+- `POST /api/chat/messages`
+- `GET /api/chat/conversations`
+- `GET /api/chat/conversations/:conversation_id`
 - `GET /api/schema/catalog`
 - `GET /api/query/history`
 - `GET /api/health`
 - `POST /mcp`
 
-Fastify concentra autenticacion, MCP, LLM Orchestrator, validacion SQL,
-ejecucion read-only, auditoria y respuesta comun en TypeScript.
+Fastify concentra autenticacion, JWT, autorizacion por rol, MCP, LLM
+Orchestrator, validacion SQL, ejecucion read-only, auditoria y respuesta comun
+en TypeScript.
 
-### Authentication
+### Authentication and Authorization
 
 El MVP tendra login obligatorio y un solo usuario CEO. No habra registro publico
-ni multiusuario.
+ni multiusuario operativo.
 
 El usuario CEO se crea por seed/setup. Las credenciales reales no deben quedar
 documentadas en texto plano; se configuraran con secretos o hash:
@@ -97,34 +93,53 @@ documentadas en texto plano; se configuraran con secretos o hash:
 - `CEO_EMAIL`
 - `CEO_PASSWORD_HASH`
 
-El rol disponible sera `CEO`. CFO, COO y lideres de area quedan fuera del MVP.
+La sesion web usara JWT:
 
-### Data Ingestion and Reporting
+- access token de vida corta;
+- refresh token o sesion persistente si se necesita renovar;
+- claim `sub` con `user_id`;
+- claim `role` con valor `CEO`;
+- claim `session_id` si se conserva tabla de sesiones;
+- firma con `JWT_SECRET` o par de llaves segun entorno.
+
+Aunque solo exista el rol `CEO` en el MVP, el backend debe tener middleware de
+autorizacion por rol para no acoplar seguridad a una suposicion de UI. CFO, COO
+y lideres de area quedan fuera del MVP, pero el modelo no debe impedir agregarlos
+despues.
+
+### Data Ingestion and Chat Reporting
 
 Para el MVP se trabajara con datos ficticios creados por seed de PostgreSQL. La
 ingestion no representa una integracion productiva todavia; su objetivo es
-alimentar reportes ejecutivos realistas.
+alimentar respuestas ejecutivas realistas dentro del chatbot.
 
 El flujo sera:
 
-1. Prisma migration crea tablas fuente, views ejecutivas y tablas de snapshots.
+1. Prisma migration crea tablas fuente, views ejecutivas y tablas de auditoria.
 2. Prisma seed inserta clientes, suscripciones, facturas, pipeline, proyectos,
    horas, tickets y gastos ficticios.
-3. Un job manual o script de seed genera snapshots por reporte.
-4. Las rutas SSR consumen snapshots o views ya agregadas.
-5. El chat contextual puede usar el snapshot visible antes de pedir SQL nuevo.
+3. El chatbot consulta views gobernadas cuando el CEO pide un analisis.
+4. El backend genera un artefacto de respuesta con narrativa, datos y
+   visualizacion.
+5. El artefacto queda asociado a la conversacion para preguntas de seguimiento.
 
-Los snapshots deben incluir:
+Un artefacto de reporte conversacional debe incluir:
 
-- `report_id`
-- `period_start`
-- `period_end`
-- `generated_at`
-- `ttl_minutes`
-- `freshness_status`
-- `filters`
+- `artifact_id`
+- `conversation_id`
+- `question`
+- `period`
+- `source_views`
+- `validated_sql`
 - `summary`
-- `payload`
+- `data`
+- `chart_spec`
+- `freshness`
+- `warnings`
+- `trace_id`
+
+Los dashboards persistentes, snapshots programados e historico formal de
+reportes quedan como extension futura.
 
 ### LLM Orchestrator
 
@@ -134,14 +149,16 @@ Codex y Claude son clientes posibles via MCP.
 Responsabilidades:
 
 - Recibir pregunta en lenguaje natural.
-- Cargar schema y views permitidas.
+- Cargar rol, permisos, schema y views permitidas.
+- Cargar contexto conversacional minimo.
 - Construir contexto para el LLM.
-- Generar SQL candidato.
+- Pedir aclaraciones si la pregunta es ambigua.
+- Generar SQL candidato cuando se requieran datos.
 - Enviar SQL al SQL Safety Layer.
 - Ejecutar SQL validado.
 - Generar respuesta ejecutiva.
 - Proponer visualizacion.
-- Responder preguntas globales o focalizadas con contexto de reporte.
+- Persistir auditoria y artefactos conversacionales.
 
 ### SQL Safety Layer
 
@@ -151,6 +168,7 @@ Valida el SQL antes de ejecutarlo:
 - Bloquea DDL, DML y multiples statements.
 - Usa AST parser, no solo regex.
 - Aplica allowlist de views, tablas, columnas y funciones.
+- Aplica permisos segun rol.
 - Fuerza `LIMIT`, max rows y timeout.
 - Rechaza tablas internas no autorizadas.
 
@@ -195,33 +213,34 @@ Tools candidatas:
 - `suggest_executive_questions`
 - `generate_chart_spec`
 
-Las tools MCP pueden consultar reportes existentes, pero la experiencia web debe
-priorizar graficos predefinidos antes que chat libre.
-
-MCP no reemplaza las APIs web. La web SSR consume `/api/dashboard/*`,
-`/api/reports/*` y `/api/chat/*`; MCP queda expuesto solo para clientes externos
-compatibles.
+Las tools MCP usan los mismos servicios internos del chatbot, pero MCP no
+reemplaza las APIs web. La web SSR consume `/api/auth/*`, `/api/chat/*` y
+`/api/schema/*`; MCP queda expuesto solo para clientes externos compatibles.
 
 ## Flujo de Datos
 
-### Flujo Report-First
+### Flujo Login y JWT
 
-1. El CEO entra a una vista SSR de dashboard.
-2. Next.js solicita datos a Fastify para el reporte correspondiente.
-3. Fastify lee snapshots, views ejecutivas o queries Prisma permitidas.
-4. Next.js renderiza KPIs, tablas y graficas.
-5. Cada reporte muestra freshness y boton `Preguntar`.
+1. El CEO abre `/login`.
+2. Next.js envia credenciales a `POST /api/auth/login`.
+3. Fastify valida hash de password del usuario seeded.
+4. Fastify emite JWT con rol `CEO`.
+5. Next.js guarda la sesion en cookie httpOnly o mecanismo equivalente.
+6. El CEO entra a `/chat`.
 
-### Flujo de Chat Contextual
+### Flujo Chat-First
 
-1. El CEO presiona `Preguntar` en un reporte o grafico.
-2. Next.js abre sidebar o burbuja de chat.
-3. La pregunta se envia a `POST /api/chat/report-question`.
-4. El payload incluye `report_id`, filtros activos, metricas visibles,
-   `context_summary`, `source_view`, muestra de datos y freshness.
-5. El LLM Orchestrator responde usando primero el contexto visible.
-6. Si necesita datos extra, genera SQL candidato y pasa por SQL Safety Layer.
-7. Fastify registra auditoria y devuelve `trace_id`.
+1. El CEO escribe una pregunta o selecciona una sugerencia.
+2. Next.js envia mensaje a `POST /api/chat/messages`.
+3. Fastify valida JWT, rol y sesion.
+4. El LLM Orchestrator carga contexto permitido y estado conversacional.
+5. Si falta informacion, el sistema pide aclaracion.
+6. Si requiere datos, el LLM genera SQL candidato.
+7. SQL Safety Layer valida por AST, allowlists, rol y limites.
+8. Database Layer ejecuta con usuario read-only.
+9. El backend genera narrativa, tabla/grafica/KPI y warnings.
+10. Fastify registra auditoria y devuelve `trace_id`.
+11. Next.js renderiza el artefacto dentro del chat.
 
 ### Flujo MCP
 
@@ -242,7 +261,8 @@ El contexto enviado al LLM debe incluir solo lo necesario:
 - Definiciones de metricas.
 - Reglas de formato SQL.
 - Limites de seguridad.
-- Historial conversacional minimo si aplica.
+- Historial conversacional minimo.
+- Ultimo artefacto relevante, si aplica.
 
 No debe incluir secretos, credenciales, tablas bloqueadas ni datos sensibles
 fuera del alcance.
@@ -250,8 +270,10 @@ fuera del alcance.
 ## Seguridad
 
 - Autenticacion obligatoria para web y MCP.
+- JWT para sesion web.
 - Bearer token/API key para MCP remoto.
 - Login web con usuario CEO seeded; sin registro publico.
+- Middleware de autorizacion por rol.
 - Rol PostgreSQL read-only.
 - Prisma Client usando `DATABASE_URL_READONLY` en runtime.
 - Migraciones con `DATABASE_URL_MIGRATION` fuera del runtime de consulta.
@@ -288,35 +310,34 @@ La web y MCP deben compartir una estructura:
 }
 ```
 
-Para reportes y chat contextual se extiende con:
+Para artefactos generados en chat se extiende con:
 
 ```json
 {
-  "report_id": "revenue_mrr_trend",
-  "report_title": "MRR y crecimiento",
-  "filters": {
-    "period": "last_6_months"
-  },
+  "artifact_id": "artifact_uuid",
+  "conversation_id": "conversation_uuid",
+  "question": "Mostrar MRR y crecimiento de los ultimos 6 meses",
+  "period": "last_6_months",
+  "source_views": ["ceo_revenue_summary"],
   "freshness": {
     "generated_at": "2026-06-01T08:00:00Z",
-    "ttl_minutes": 1440,
     "status": "fresh"
   },
-  "context_summary": "MRR crecio 8% en los ultimos 6 meses.",
-  "source_view": "ceo_revenue_summary",
-  "chart_specs": []
+  "summary": "MRR crecio 8% en los ultimos 6 meses.",
+  "chart_spec": {
+    "type": "line",
+    "x": "month",
+    "y": "mrr"
+  }
 }
 ```
 
 ## Actualizacion de Reportes
 
-El MVP no promete tiempo real. Los reportes se alimentan por seed y snapshots:
-
-- Overview: diario o manual.
-- Revenue, customers y pipeline: diario.
-- Projects y support: diario o cada 6 horas si se simula mayor dinamismo.
-- Finance: mensual.
-- Reports history: conserva snapshots por periodo.
+El MVP no promete tiempo real ni reportes programados. Los datos se alimentan por
+seed y se consultan bajo demanda desde el chatbot. Si una consulta es costosa o
+frecuente, puede introducirse cache o snapshot conversacional, pero no como
+dashboard principal.
 
 ## Entregables de Fase 2
 
@@ -325,6 +346,6 @@ seran:
 
 - URL de aplicacion web.
 - URL del servidor MCP.
-- API key o token valido.
+- API key o token valido para MCP.
 - Instrucciones de configuracion para cliente MCP.
 - Credenciales de prueba o usuario demo para staging.

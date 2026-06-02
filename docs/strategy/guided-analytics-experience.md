@@ -2,108 +2,159 @@
 
 ## Idea Central
 
-Si el usuario no sabe que preguntar, la solucion debe guiarlo. El chat existe,
-pero queda en segundo plano. La experiencia principal sera un dashboard
-ejecutivo con reportes y graficas predefinidas.
+La experiencia principal deja de ser report-first. La aplicacion web debe ser
+chat-first: despues del login, el CEO entra a una unica vista de chatbot donde
+pregunta, recibe explicaciones ejecutivas y ve reportes generados bajo demanda
+dentro de la conversacion.
 
-## Patrones de Interfaz
+El sistema sigue siendo guiado, pero la guia ocurre dentro del chat mediante
+preguntas sugeridas, acciones rapidas, aclaraciones, filtros conversacionales y
+artefactos visuales generados por cada respuesta. No hay dashboard principal ni
+pantallas separadas de reportes para el MVP.
 
-### Catalogo de Metricas
+## Superficie de Interfaz
 
-Mostrar metricas disponibles con nombres entendibles:
+### Login
 
-- MRR del mes.
-- ARR.
-- Churn.
-- Pipeline comercial.
-- Proyectos en riesgo.
-- Margen por proyecto.
-- Tickets criticos.
-- Runway.
-- Forecast.
+La primera pantalla es un login obligatorio:
 
-Cada metrica deberia incluir definicion, formula, filtros permitidos y fecha de
-actualizacion.
+- Usuario CEO creado por seed/setup.
+- Autenticacion con JWT.
+- Sin registro publico.
+- Sin autoservicio de usuarios.
+- Rol `CEO` incluido en claims y validado en backend.
+
+### Chatbot Ejecutivo
+
+La segunda y principal pantalla es el chatbot:
+
+- Composer para preguntas en lenguaje natural.
+- Preguntas sugeridas visibles antes y despues de cada respuesta.
+- Respuestas ejecutivas con tablas, graficas o KPIs embebidos.
+- Reportes generados bajo demanda dentro del hilo.
+- Filtros conversacionales como periodo, cliente, proyecto, area o metrica.
+- Historial minimo de conversacion para mantener contexto.
+- Estado de freshness y advertencias de calidad de datos por respuesta.
+- `trace_id` visible o recuperable para auditoria.
+
+## Reportes Dentro del Chat
+
+Un reporte ya no es una vista SSR separada. Es un artefacto generado por una
+respuesta del chatbot.
+
+Ejemplos:
+
+- El CEO pregunta "Mostrar MRR y crecimiento de los ultimos 6 meses".
+- El sistema responde con resumen ejecutivo, grafica de linea y tabla resumida.
+- El CEO pregunta "Que explica la caida de marzo?"
+- El sistema conserva contexto del reporte anterior y profundiza.
+
+Cada artefacto de reporte debe incluir:
+
+- `artifact_id`
+- `conversation_id`
+- `question`
+- `period`
+- `source_views`
+- `validated_sql`
+- `summary`
+- `data`
+- `chart_spec`
+- `freshness`
+- `warnings`
+- `trace_id`
+
+## Patrones de Guia
 
 ### Preguntas Sugeridas
 
-El sistema propone preguntas segun contexto:
+El sistema propone preguntas utiles para reducir prompt engineering:
 
-- "Comparar ventas contra el mes anterior."
-- "Ver MRR y crecimiento de los ultimos 6 meses."
+- "Mostrar MRR y crecimiento de los ultimos 6 meses."
 - "Listar proyectos con margen menor al 20%."
-- "Mostrar clientes con tickets criticos abiertos."
-- "Explicar cambios principales."
-- "Generar resumen ejecutivo."
-- "Revisar calidad de datos."
+- "Identificar clientes con tickets criticos abiertos."
+- "Comparar pipeline actual contra el mes pasado."
+- "Generar forecast de ventas del trimestre."
+- "Explicar cambios principales del periodo."
+- "Revisar calidad de datos antes de responder."
 
 ### Acciones Rapidas
 
-Botones o comandos predefinidos para tareas repetidas:
+Las acciones rapidas existen dentro del chat, asociadas al contexto actual:
 
 - Comparar.
 - Explicar.
 - Forecast.
-- Exportar reporte.
-- Programar alerta.
 - Ver detalle.
+- Cambiar periodo.
+- Cambiar metrica.
+- Descargar resultado, si se aprueba despues.
 
-### Dashboard Report-First
+### Aclaraciones
 
-La app Next.js SSR debe separar graficas por vistas: overview, revenue,
-customers, pipeline, projects, support, finance e historico de reportes. El CEO
-primero ve reportes; luego puede abrir el chat si necesita preguntar algo.
+Si una pregunta es ambigua, el chatbot debe pedir aclaracion antes de generar SQL
+innecesario. Ejemplos:
 
-### Chat Contextual por Reporte
-
-Cada grafico o reporte debe tener un boton `Preguntar`. Al usarlo, se abre el
-sidebar o burbuja de chat y se inyecta contexto del reporte:
-
-- `report_id`
-- filtros activos;
-- metricas visibles;
-- tipo de grafico;
-- resumen del reporte;
-- muestra de datos;
-- view origen;
-- freshness.
+- Periodo no especificado.
+- Metrica ambigua.
+- Cliente o proyecto con nombres similares.
+- Solicitud que podria exponer datos fuera del rol.
 
 ### Conversacion con Estado
 
-Cuando el usuario si use chat, el sistema debe conservar contexto:
+El estado conversacional debe conservar:
 
 - Periodo seleccionado.
-- Cliente, proyecto o equipo filtrado.
+- Cliente, proyecto o area filtrada.
 - Metrica activa.
-- Reporte o grafico activo.
+- Ultimo artefacto generado.
 - Comparacion previa.
 - Rol y permisos.
-
-## Como Reduce Prompt Engineering
-
-- El usuario selecciona intenciones en vez de escribir prompts largos.
-- Las preguntas sugeridas convierten datos recientes en acciones posibles.
-- La capa semantica evita que el usuario recuerde nombres de tablas o formulas.
-- El copiloto puede pedir aclaraciones cuando la pregunta es ambigua.
-- Los reportes predefinidos resuelven las preguntas comunes sin abrir el chat.
+- Advertencias de calidad de datos.
 
 ## Rol de IA
 
+- Traducir intencion ejecutiva a consultas seguras.
+- Pedir aclaraciones cuando falte contexto.
 - Generar explicaciones en lenguaje natural.
-- Sugerir preguntas siguientes.
-- Detectar anomalias.
-- Resumir reportes.
-- Traducir intencion a herramientas MCP cuando se use un cliente externo.
-- Recuperar definiciones desde RAG.
+- Proponer preguntas siguientes.
+- Generar especificaciones de visualizacion.
+- Detectar anomalias con evidencia.
+- Recuperar definiciones desde capa semantica o RAG.
+- Mantener continuidad entre preguntas del mismo hilo.
+
+## Seguridad y Gobernanza
+
+- El frontend no genera ni ejecuta SQL.
+- El LLM solo produce SQL candidato.
+- Todo SQL candidato pasa por SQL Safety Layer.
+- El runtime usa PostgreSQL read-only.
+- El rol `CEO` limita tools, views, columnas y acciones.
+- JWT se valida en cada request web.
+- MCP mantiene autenticacion separada por bearer token/API key.
+- Auditoria registra prompts, SQL candidato, SQL validado, rol, cliente,
+  warnings y `trace_id`.
+
+## Como Reduce Prompt Engineering
+
+- El chat sugiere preguntas relevantes desde el inicio.
+- Las acciones rapidas convierten operaciones comunes en comandos guiados.
+- La capa semantica evita que el CEO recuerde nombres de tablas o formulas.
+- El sistema pide aclaraciones en vez de inventar supuestos criticos.
+- Los reportes se generan en el flujo conversacional, no en pantallas separadas.
 
 ## Riesgos
 
-- Una interfaz demasiado guiada puede limitar analisis exploratorio.
-- Demasiadas sugerencias pueden distraer.
-- Si el sistema sugiere preguntas irrelevantes, pierde confianza.
+- Un chat vacio puede seguir intimidando si no hay buenas sugerencias iniciales.
+- Demasiada libertad puede producir preguntas ambiguas o imposibles.
+- Si el estado conversacional se maneja mal, las respuestas pueden mezclar
+  periodos o filtros.
+- Los artefactos generados pueden parecer reportes formales aunque dependan de
+  datos ficticios o freshness limitada.
 
 ## Recomendacion Inicial
 
-Disenar primero un dashboard pequeno con reportes ejecutivos y boton `Preguntar`
-por grafico. Luego validar si el CEO necesita mas chat libre o si los reportes
-cubren la mayor parte de los casos.
+Disenar primero una aplicacion de dos pantallas: login y chatbot ejecutivo. El
+chatbot debe cubrir preguntas sugeridas, aclaraciones, respuestas con tablas y
+graficas embebidas, y auditoria completa. Los dashboards, reportes persistentes
+y envios automaticos quedan como extensiones futuras sujetas a ADR.

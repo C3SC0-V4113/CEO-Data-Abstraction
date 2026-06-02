@@ -17,19 +17,20 @@ operativos:
 - "Puedes darme un forecast de ventas?"
 - "Que tickets criticos siguen abiertos?"
 
-La solucion no debe ser solo un chatbot conectado a una base de datos. Debe ser
-un sistema Text-to-SQL seguro, auditable y de solo lectura, con una experiencia
-web moderna report-first, donde los graficos y reportes resuelven las preguntas
-principales sin escribir prompts, y un servidor MCP remoto protegido por
-tokens/API keys.
+La solucion no debe ser un chatbot conectado de forma directa e insegura a una
+base de datos. Debe ser un sistema Text-to-SQL seguro, auditable y de solo
+lectura, con una experiencia web moderna chat-first donde los reportes, tablas y
+graficas se generan bajo demanda dentro de la conversacion, y un servidor MCP
+remoto protegido por tokens/API keys.
 
 ## Arquitectura Objetivo
 
 - **Frontend web**: Next.js fullstack con SSR + shadcn/ui, desplegado en
-  Cloudflare Workers usando OpenNext/Cloudflare. La UI principal sera un
-  dashboard ejecutivo con reportes, KPIs, tablas y graficas.
+  Cloudflare Workers usando OpenNext/Cloudflare. La UI principal sera un login
+  y una vista de chatbot ejecutivo.
 - **Login MVP**: un solo usuario CEO creado por seed/setup; no habra registro
-  publico ni multiusuario en MVP.
+  publico ni multiusuario en MVP. La sesion web se manejara con JWT y rol
+  `CEO`.
 - **Backend principal**: Fastify + TypeScript para APIs, MCP remoto,
   autenticacion, orquestacion LLM, validacion SQL y acceso read-only a datos.
 - **Despliegue backend**: Railway recomendado para MVP con Fastify + Prisma;
@@ -43,9 +44,9 @@ tokens/API keys.
 - **Seguridad**: usuario de base de datos estrictamente read-only, validacion SQL
   por AST, allowlist de views/tablas, `LIMIT`, timeouts, max rows y auditoria.
 - **Ingestion MVP**: datos ficticios en PostgreSQL generados por Prisma seed,
-  snapshots por reporte y freshness visible en cada vista.
-- **Chat contextual**: sidebar o burbuja secundaria; cada grafico/reporte tendra
-  boton `Preguntar` para inyectar contexto del reporte.
+  views ejecutivas y freshness/warnings visibles en cada respuesta.
+- **Chatbot ejecutivo**: experiencia principal; cada respuesta puede generar
+  narrativa, tabla, grafica, KPI o reporte bajo demanda dentro del hilo.
 
 ## LLM Orchestrator
 
@@ -77,7 +78,7 @@ AGENTS.md         Instrucciones para agentes que trabajen en este repo.
 ## Estado Actual
 
 Este repositorio esta en Fase 1: propuesta de arquitectura para aprobacion. No
-hay implementacion de producto, base de datos, MCP server ni dashboard todavia.
+hay implementacion de producto, base de datos, MCP server ni chatbot todavia.
 La prioridad es dejar clara la arquitectura, el flujo Text-to-SQL, las
 restricciones de seguridad, las tecnologias y el despliegue.
 
@@ -86,7 +87,7 @@ restricciones de seguridad, las tecnologias y el despliegue.
 1. Empezar por [docs/discovery/problem-framing.md](docs/discovery/problem-framing.md).
 2. Revisar los retos de usuarios en [docs/discovery/user-challenges.md](docs/discovery/user-challenges.md).
 3. Leer la arquitectura de Fase 1 en [docs/architecture/proposal.md](docs/architecture/proposal.md).
-4. Revisar dashboard/reporting en [docs/strategy/dashboard-reporting.md](docs/strategy/dashboard-reporting.md).
+4. Revisar la estrategia vigente chat-first en [docs/strategy/guided-analytics-experience.md](docs/strategy/guided-analytics-experience.md).
 5. Revisar MCP en [docs/strategy/mcp-first-access.md](docs/strategy/mcp-first-access.md).
-6. Leer la decision de login/despliegue en [docs/adr/0004-adopt-single-ceo-login-and-railway-backend-for-mvp.md](docs/adr/0004-adopt-single-ceo-login-and-railway-backend-for-mvp.md).
+6. Leer ADR-0005 en [docs/adr/0005-adopt-chatbot-first-guided-analytics-experience.md](docs/adr/0005-adopt-chatbot-first-guided-analytics-experience.md).
 7. Revisar diagramas en [docs/diagrams/README.md](docs/diagrams/README.md).

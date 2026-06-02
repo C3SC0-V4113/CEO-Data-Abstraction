@@ -10,10 +10,22 @@ consultar datos y producir una respuesta o accion.
 Notificacion generada cuando una metrica cruza un umbral, cambia de forma
 anomala o requiere atencion segun reglas y contexto.
 
+## Artefacto de Chat
+
+Resultado estructurado generado dentro de una conversacion. Puede ser una tabla,
+grafica, KPI, resumen o reporte bajo demanda. Debe conservar contexto, datos,
+warnings, freshness y `trace_id`.
+
 ## Capa Semantica
 
 Definicion gobernada de metricas, dimensiones, filtros y relaciones. Evita que
 cada usuario o modelo interprete los datos de forma distinta.
+
+## Chatbot Ejecutivo
+
+Interfaz principal del MVP despues del login. Permite que el CEO pregunte en
+lenguaje natural y reciba respuestas ejecutivas con evidencia, tablas, graficas
+o KPIs generados bajo demanda.
 
 ## Copiloto
 
@@ -34,6 +46,12 @@ endpoint MCP, autenticacion y el pipeline Text-to-SQL en TypeScript.
 
 Proceso automatizado que corre bajo una frecuencia o condicion. En este repo los
 jobs son una hipotesis para reportes, snapshots, alertas y analisis pesados.
+
+## JWT
+
+JSON Web Token usado para representar una sesion autenticada. En este MVP debe
+incluir al menos usuario, expiracion y rol `CEO`, y debe validarse en backend en
+cada request protegida.
 
 ## MCP
 
@@ -67,6 +85,11 @@ IA solo pueden ejecutarse despues de pasar por el SQL Safety Layer.
 
 Retrieval-Augmented Generation. Patron donde el modelo recupera informacion
 relevante desde documentos o bases de conocimiento antes de responder.
+
+## Rol CEO
+
+Rol inicial y unico del MVP. Aunque solo exista un usuario operativo, el backend
+debe validar el rol para limitar endpoints, tools, views, columnas y acciones.
 
 ## Snapshot
 

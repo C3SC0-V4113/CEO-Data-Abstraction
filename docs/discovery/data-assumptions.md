@@ -21,7 +21,8 @@ o una estrategia compatible con Workers.
 ## Auth Seed
 
 El MVP tendra un solo usuario CEO y no tendra registro publico. El usuario se
-crea durante seed/setup.
+crea durante seed/setup. La sesion web se maneja con JWT y el rol `CEO` debe
+validarse en backend.
 
 ### users
 
@@ -37,13 +38,16 @@ crea durante seed/setup.
 
 - `id`
 - `user_id`
+- `token_family_id`
 - `expires_at`
+- `revoked_at`
 - `created_at`
 
 Secrets relacionados:
 
 - `CEO_EMAIL`
 - `CEO_PASSWORD_HASH`
+- `JWT_SECRET`
 - `MCP_API_KEY`
 
 ## Datos Ficticios y Seed
@@ -175,11 +179,57 @@ El Text-to-SQL debe consultar preferentemente views gobernadas:
 - `ceo_support_health`
 - `ceo_financial_runway`
 
-## Reportes y Snapshots
+## Artefactos de Chat y Reportes Bajo Demanda
 
-Los graficos del dashboard deben alimentarse desde views o snapshots, no desde
-preguntas libres de chat. Esto permite SSR estable, menor latencia y menos
-dependencia de prompt engineering.
+Los reportes del MVP se generan dentro del chat segun la pregunta del CEO. Deben
+alimentarse desde views gobernadas y SQL validado, no desde SQL libre. Los
+snapshots programados y dashboards persistentes quedan como extension futura.
+
+### conversations
+
+Representa un hilo de chat.
+
+- `id`
+- `user_id`
+- `title`
+- `created_at`
+- `updated_at`
+
+### chat_messages
+
+Representa mensajes del usuario y del asistente.
+
+- `id`
+- `conversation_id`
+- `role`
+- `content`
+- `metadata`
+- `created_at`
+
+### chat_artifacts
+
+Representa tablas, KPIs, graficas o reportes generados dentro del chat.
+
+- `id`
+- `conversation_id`
+- `message_id`
+- `artifact_type`
+- `title`
+- `question`
+- `source_views`
+- `validated_sql`
+- `summary`
+- `payload`
+- `chart_spec`
+- `freshness`
+- `warnings`
+- `trace_id`
+- `created_at`
+
+## Reportes Persistentes Futuros
+
+Estas tablas pueden usarse si se aprueba despues un historico formal de reportes,
+dashboards o automatizaciones. No son la superficie principal del MVP.
 
 ### report_definitions
 
@@ -212,7 +262,7 @@ Guarda resultados precomputados por periodo y filtros.
 
 ### dashboard_widgets
 
-Define que graficos aparecen en cada vista SSR.
+Define que graficos aparecerian en una vista SSR futura.
 
 - `id`
 - `route`
@@ -252,7 +302,7 @@ Resultados precomputados para consultas frecuentes o pesadas.
 - `computed_at`
 
 Nota: `metric_snapshots` puede usarse para metricas atomicas; `report_snapshots`
-para respuestas compuestas listas para dashboard.
+para respuestas compuestas si despues se aprueban reportes persistentes.
 
 ### report_jobs
 
@@ -270,7 +320,8 @@ Configuracion de reportes automaticos futuros.
 La IA puede generar SQL candidato, pero solo se ejecuta si pasa validacion por
 AST, allowlist y permisos read-only de base de datos.
 
-El dashboard ejecutivo no depende de que el usuario escriba prompts. Las
-preguntas importantes deben estar abstraidas como reportes, graficos o KPIs.
+El chatbot ejecutivo debe guiar al CEO con preguntas sugeridas, acciones rapidas
+y aclaraciones. Los reportes se entregan como artefactos dentro de la
+conversacion.
 
 La web consume APIs Fastify propias; no consume MCP directamente.

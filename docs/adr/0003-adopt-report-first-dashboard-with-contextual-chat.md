@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Superseded
 
 ## Date
 
@@ -102,6 +102,7 @@ Tiempo real no es necesario para validar el requerimiento.
 ## Related Decisions
 
 - ADR-0002: Adoptar Next.js SSR, Fastify, Prisma y MCP remoto para Text-to-SQL.
+- ADR-0005: Adoptar chatbot ejecutivo como experiencia principal.
 
 ## References
 

@@ -7,8 +7,8 @@
 - Usuario principal: CEO de una empresa desarrolladora de software.
 - Roles: solo `CEO` en MVP.
 - No habra registro publico ni multiusuario.
-- El objetivo es que el CEO entienda salud ejecutiva de la empresa sin escribir
-  prompts.
+- El objetivo es que el CEO entienda salud ejecutiva de la empresa desde una
+  experiencia de chatbot guiado.
 
 ### Metricas Oficiales MVP
 
@@ -21,9 +21,10 @@
 
 ### Metricas Exploratorias
 
-Cualquier pregunta ad hoc del chat que no este cubierta por widgets o reportes
-predefinidos se considera exploratoria. Debe pasar por SQL Safety Layer,
-allowlists y permisos read-only antes de ejecutar.
+Cualquier pregunta del chat que requiera consultar datos debe pasar por SQL
+Safety Layer, allowlists, autorizacion por rol y permisos read-only antes de
+ejecutar. Los reportes generados bajo demanda se consideran artefactos de chat,
+no vistas separadas.
 
 ### Decisiones Esperadas del CEO
 
@@ -32,7 +33,7 @@ allowlists y permisos read-only antes de ejecutar.
 - Evaluar si runway y burn rate requieren accion.
 - Revisar pipeline y forecast comercial.
 - Identificar problemas de soporte que impactan cuentas clave.
-- Preguntar por explicaciones especificas desde un reporte.
+- Pedir explicaciones de seguimiento sobre un artefacto generado en el chat.
 
 ### Datos
 
@@ -50,27 +51,30 @@ allowlists y permisos read-only antes de ejecutar.
 
 - Login obligatorio para la web.
 - Usuario CEO creado por seed/setup.
+- Sesion web con JWT.
+- Rol `CEO` incluido en claims y validado por backend.
 - Credenciales reales no se documentan en texto plano.
 - MCP usa `MCP_API_KEY` y queda como canal externo para clientes compatibles.
 - Web no consume MCP directamente; consume APIs Fastify.
 - Auditoria: prompts, report context, SQL generado, SQL validado, cliente,
   usuario, rows, warnings y `trace_id`.
-- Reportes automaticos no requieren aprobacion humana en MVP porque no se envian
-  externamente; solo se consultan desde el dashboard.
+- Reportes automaticos no forman parte del MVP. Si se agregan despues, deben
+  tratarse como nueva decision.
 
 ### Experiencia
 
-- Dashboard/reportes son la experiencia principal.
-- Chat global y chat contextual son secundarios.
-- Cada grafico o reporte relevante debe tener accion `Preguntar`.
+- Login y chatbot son las unicas interfaces principales del MVP.
+- Los reportes se generan dentro de la vista de chat segun la pregunta.
+- El chatbot debe sugerir preguntas y acciones rapidas para evitar un chat
+  vacio.
 - Consultas sugeridas por defecto:
   - "Que cambio mas desde el ultimo periodo?"
   - "Que proyectos requieren atencion?"
   - "Que clientes tienen mayor riesgo?"
   - "Que explica la variacion de MRR?"
   - "Que tickets criticos afectan cuentas clave?"
-- Medicion de exito: el CEO puede entender overview, revenue, clientes,
-  pipeline, proyectos, soporte y finanzas sin abrir el chat.
+- Medicion de exito: el CEO puede obtener respuestas con narrativa, tablas y
+  graficas dentro del chat sin conocer SQL ni estructura de tablas.
 
 ## Preguntas Futuras
 

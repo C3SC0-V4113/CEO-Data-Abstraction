@@ -11,12 +11,11 @@ la web app.
 
 El servidor MCP vivira dentro del backend Fastify o como modulo montado en el
 mismo runtime. Las tools MCP no duplican logica: llaman los mismos servicios
-internos que usa `POST /api/chat/query`.
+internos que usa `POST /api/chat/messages`.
 
 MCP no es la API del frontend. La web SSR consume endpoints HTTP propios de
-Fastify, como `/api/dashboard/*`, `/api/reports/*` y `/api/chat/*`. MCP queda
-como canal externo para Claude Desktop, Cursor/Codex u otros clientes
-compatibles.
+Fastify, como `/api/auth/*`, `/api/chat/*` y `/api/schema/*`. MCP queda como
+canal externo para Claude Desktop, Cursor/Codex u otros clientes compatibles.
 
 ## Endpoint
 

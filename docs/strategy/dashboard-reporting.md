@@ -1,8 +1,16 @@
 # Dashboard Reporting
 
+## Estado
+
+Esta estrategia queda como referencia historica. La estrategia vigente es
+chat-first segun `guided-analytics-experience.md` y ADR-0005. Dashboards,
+reportes persistentes e historico visual pueden retomarse despues, pero no son
+la experiencia principal del MVP.
+
 ## Principio
 
-La web app sera report-first. Las preguntas ejecutivas mas importantes deben
+La opcion report-first asumiria que las preguntas ejecutivas mas importantes
+deben
 estar abstraidas como KPIs, tablas y graficas. El chat existe como soporte
 global o contextual, pero no debe ser la primera forma de obtener informacion.
 

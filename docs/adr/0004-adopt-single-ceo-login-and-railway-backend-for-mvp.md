@@ -11,13 +11,18 @@ Proposed
 ## Context
 
 El MVP necesita reducir alcance y complejidad. La aplicacion estara orientada a
-un CEO de una empresa desarrolladora de software. El dashboard sera report-first
-y el chat sera secundario. Tambien se busca reducir friccion de despliegue para
-Fastify + Prisma + PostgreSQL.
+un CEO de una empresa desarrolladora de software. La experiencia vigente sera
+chat-first: despues del login, el CEO usa una unica vista de chatbot para pedir
+analisis y generar reportes bajo demanda dentro de la conversacion.
+
+Tambien se busca reducir friccion de despliegue para Fastify + Prisma +
+PostgreSQL. Aunque el MVP tenga un solo usuario operativo, la autenticacion debe
+usar JWT y la autorizacion debe validar rol en backend.
 
 ## Decision Drivers
 
 - Evitar construir registro, multiusuario y RBAC completo en MVP.
+- Mantener JWT y middleware de autorizacion por rol desde el inicio.
 - Mantener compatibilidad directa entre Fastify, Prisma Client y PostgreSQL.
 - Separar frontend SSR de backend/API.
 - Evitar que el frontend consuma MCP directamente.
@@ -25,11 +30,11 @@ Fastify + Prisma + PostgreSQL.
 
 ## Considered Options
 
-### Option 1: Login unico CEO + Railway backend
+### Option 1: Login unico CEO con JWT + Railway backend
 
 - Pros: menor complejidad, Prisma funciona de forma tradicional, backend y
-  Postgres conviven en Railway, auth simple.
-- Cons: no cubre multiusuario ni roles avanzados.
+  Postgres conviven en Railway, auth es simple pero no informal.
+- Cons: no cubre multiusuario operativo ni roles adicionales.
 
 ### Option 2: Registro y multiusuario desde MVP
 
@@ -53,6 +58,9 @@ Adoptar para el MVP:
 
 - Login obligatorio sin registro.
 - Un solo usuario CEO creado por seed/setup.
+- Sesion web con JWT.
+- Claim de rol `CEO` en el token.
+- Middleware backend de autorizacion por rol.
 - Backend Fastify + Prisma en Railway.
 - PostgreSQL en Railway o servicio compatible dentro del mismo entorno.
 - Next.js SSR + shadcn/ui en Cloudflare Workers.
@@ -66,8 +74,9 @@ Node.js tradicional. Esto evita resolver edge constraints antes de validar la
 propuesta.
 
 Un usuario CEO seeded permite demostrar el flujo completo sin construir registro
-ni RBAC. MCP queda disponible para clientes externos sin mezclar su token con el
-frontend.
+ni multiusuario. Aun asi, JWT y autorizacion por rol evitan que la seguridad
+dependa de la UI o de una suposicion informal. MCP queda disponible para
+clientes externos sin mezclar su token con el frontend.
 
 ## Consequences
 
@@ -75,6 +84,7 @@ frontend.
 
 - Menor alcance para MVP.
 - Despliegue backend mas compatible con Prisma.
+- Seguridad web modelada con JWT y rol desde el inicio.
 - Separacion clara entre web auth y MCP auth.
 - Frontend SSR mantiene contratos HTTP simples.
 
@@ -82,6 +92,8 @@ frontend.
 
 - No hay autoservicio de usuarios.
 - No hay roles CFO/COO/lideres en MVP.
+- Hay que implementar emision, validacion y expiracion de JWT aunque solo exista
+  un usuario.
 - Railway agrega otro proveedor junto a Cloudflare.
 
 ### Risks and Mitigations
@@ -89,22 +101,27 @@ frontend.
 - Riesgo: credenciales CEO se filtran.
   Mitigacion: usar hash/secrets y no documentar valores reales.
 - Riesgo: MVP no representa multiusuario real.
-  Mitigacion: documentar multiusuario como futuro.
+  Mitigacion: documentar multiusuario como futuro, pero mantener claims y
+  middleware de rol.
 - Riesgo: confusion entre web API y MCP.
   Mitigacion: documentar que MCP es externo y el frontend no lo consume.
+- Riesgo: JWT se valida solo en frontend.
+  Mitigacion: validar JWT y rol en cada endpoint protegido de Fastify.
 
 ## Implementation Notes
 
 - Seed crea usuario CEO con `CEO_EMAIL` y `CEO_PASSWORD_HASH`.
+- JWT usa `JWT_SECRET` o par de llaves configurado por secreto.
+- JWT incluye `sub`, `role`, `exp` y opcionalmente `session_id`.
 - Usar `DATABASE_URL_MIGRATION` para migraciones/setup.
 - Usar `DATABASE_URL_READONLY` para runtime de consultas.
 - MCP usa `MCP_API_KEY` en `Authorization: Bearer <token>`.
-- Web usa `/api/dashboard/*`, `/api/reports/*` y `/api/chat/*`, no `/mcp`.
+- Web usa `/api/auth/*`, `/api/chat/*` y `/api/schema/*`, no `/mcp`.
 
 ## Related Decisions
 
 - ADR-0002: Adoptar Next.js SSR, Fastify, Prisma y MCP remoto para Text-to-SQL.
-- ADR-0003: Adoptar dashboard report-first con chat contextual.
+- ADR-0005: Adoptar chatbot ejecutivo como experiencia principal.
 
 ## References
 

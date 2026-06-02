@@ -5,7 +5,8 @@
 El requerimiento pide un sistema de consulta de datos asistido por IA
 Text-to-SQL, accesible desde dos frentes:
 
-- Una aplicacion web propietaria con chat, tablas y graficas dinamicas.
+- Una aplicacion web propietaria con login y chatbot, capaz de renderizar tablas
+  y graficas dinamicas dentro de la conversacion.
 - Un servidor MCP remoto consumible por Claude Desktop, Cursor/Codex u otros
   clientes compatibles.
 
@@ -40,7 +41,8 @@ Ejemplos:
 Construir una base de arquitectura para un producto que:
 
 - Traduzca lenguaje natural a SQL de solo lectura.
-- Use Next.js SSR + shadcn/ui para una experiencia web ejecutiva.
+- Use Next.js SSR + shadcn/ui para una experiencia web ejecutiva basada en
+  login y chatbot.
 - Exponga las mismas capacidades por MCP remoto.
 - Genere tablas y graficas dinamicas desde los resultados.
 - Audite cada consulta y cada SQL generado.

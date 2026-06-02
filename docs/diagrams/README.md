@@ -3,6 +3,13 @@
 Esta carpeta contiene los diagramas fuente y editables para presentar la
 arquitectura, modelo de datos, flujos y wireframes del MVP.
 
+## Estado
+
+Los diagramas actuales fueron creados antes del cambio a experiencia
+chat-first. La arquitectura textual vigente esta en
+`docs/architecture/proposal.md` y ADR-0005. Estos diagramas deben regenerarse
+despues de estabilizar la arquitectura textual.
+
 ## Estructura
 
 ```text
@@ -13,20 +20,21 @@ docs/diagrams/
   assets/   Politica de logos e imagenes.
 ```
 
-## Diagramas
+## Diagramas Pendientes de Realinear
 
-- [architecture](drawio/architecture.drawio): despliegue Cloudflare/Railway,
-  Fastify, Prisma, PostgreSQL, MCP externo, LLM, SQL Safety Layer y reportes.
-- [database-model](drawio/database-model.drawio): tablas fuente, auth, reportes,
-  snapshots, auditoria y views `ceo_*`.
-- [use-cases-and-flows](drawio/use-cases-and-flows.drawio): casos de uso, flujo
-  frontend y flujo MCP.
-- [frontend-flow](drawio/frontend-flow.drawio): flujo SSR del dashboard y chat
-  contextual.
+- [architecture](drawio/architecture.drawio): pendiente de actualizar a login,
+  chatbot, Fastify, Prisma, PostgreSQL, MCP externo, LLM y SQL Safety Layer.
+- [database-model](drawio/database-model.drawio): pendiente de actualizar con
+  conversaciones, mensajes, artefactos de chat, auth, auditoria y views
+  `ceo_*`.
+- [use-cases-and-flows](drawio/use-cases-and-flows.drawio): pendiente de
+  actualizar a flujo login -> chat -> artefacto.
+- [frontend-flow](drawio/frontend-flow.drawio): pendiente de actualizar a flujo
+  SSR de login y chatbot.
 - [mcp-flow](drawio/mcp-flow.drawio): flujo externo MCP con bearer token,
   orquestador, SQL Safety Layer y PostgreSQL.
-- [ui-wireframes](drawio/ui-wireframes.drawio): login, dashboard, reportes,
-  graficas y chat contextual.
+- [ui-wireframes](drawio/ui-wireframes.drawio): pendiente de actualizar a login
+  y chatbot con artefactos embebidos.
 
 ## Flujo Recomendado
 

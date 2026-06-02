@@ -2,9 +2,9 @@
 
 ## Usuarios no Saben que Preguntar
 
-Un chat vacio obliga al usuario a imaginar la pregunta correcta. En analitica de
-negocio esto es una barrera: muchas personas saben que quieren "entender como va
-el negocio", pero no saben convertirlo en una solicitud precisa.
+Un chat vacio obliga al usuario a imaginar la pregunta correcta. Como la
+experiencia vigente sera chat-first, el sistema debe compensar esa barrera con
+preguntas sugeridas, acciones rapidas y aclaraciones dentro del propio chat.
 
 ## Falta de Prompt Engineering
 
@@ -16,7 +16,7 @@ que usuarios de negocio aprendan a escribir prompts complejos para obtener valor
 
 Algunas preguntas se repiten de forma semanal, quincenal, mensual o trimestral.
 Si siempre se preguntan igual, probablemente deberian convertirse en reportes,
-alertas o accesos rapidos.
+artefactos reutilizables dentro del chat, alertas o accesos rapidos.
 
 ## Necesidad de Respuestas Accionables
 
@@ -36,5 +36,6 @@ forecast y rendimiento deben estar gobernadas.
 
 ## Implicacion para la Solucion
 
-La solucion debe combinar conversacion con guias, sugerencias y automatizaciones.
-El chat es una interfaz posible, no el producto completo.
+La solucion debe combinar conversacion con guias, sugerencias y artefactos
+visuales. El chat es la interfaz principal, pero no debe ser una caja vacia:
+debe guiar la formulacion de preguntas y mostrar evidencia verificable.
