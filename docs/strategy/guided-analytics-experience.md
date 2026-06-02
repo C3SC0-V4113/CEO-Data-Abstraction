@@ -37,6 +37,50 @@ La segunda y principal pantalla es el chatbot:
 - Estado de freshness y advertencias de calidad de datos por respuesta.
 - `trace_id` visible o recuperable para auditoria.
 
+## Composer
+
+El composer debe mantenerse simple. Sus opciones no son filtros ni formularios
+analiticos; funcionan como modos que complementan el prompt y ayudan al sistema
+a entender el tipo de salida esperada. El CEO debe poder escribir una pregunta
+natural sin tomar muchas decisiones antes de enviarla.
+
+### Modos del Composer
+
+| Modo | Uso principal | Comportamiento esperado |
+| --- | --- | --- |
+| `responder` | Respuesta ejecutiva directa | Modo default. Responde con texto claro y puede incluir tabla, KPI o grafica si el prompt lo pide o si aporta evidencia critica. |
+| `analizar` | Explicar causas y evidencia | Prioriza analisis, comparaciones, posibles causas, datos relevantes y siguientes preguntas. Puede incluir texto, tabla y grafica. |
+| `reporte_visual` | Generar salida visual | Prioriza una grafica o reporte visual con narrativa breve, `chart_spec`, tabla base, freshness y warnings. |
+| `plan` | Convertir hallazgos en accion | Prioriza acciones, riesgos, prioridades y siguientes pasos. Si el prompt pide grafica, el plan debe incluir tambien una grafica relevante. |
+
+### Precedencia entre Modo y Prompt
+
+El `intent_mode` define la prioridad base de la respuesta, pero no limita lo que
+el usuario puede pedir en el texto. El prompt puede agregar requisitos
+explicitos como "analiza", "hazme una grafica", "crea un reporte visual" o
+"incluye un plan".
+
+Reglas:
+
+- El modo establece el objetivo principal.
+- Los requisitos explicitos del prompt se deben cumplir si son seguros y hay
+  datos suficientes.
+- Si modo y prompt piden cosas distintas, la respuesta debe combinar ambos.
+- Si la combinacion requiere datos nuevos, la consulta vuelve a pasar por SQL
+  Safety Layer.
+- Si faltan periodo, metrica o alcance, el sistema debe pedir aclaracion.
+
+Ejemplos:
+
+- En `responder`, si el usuario pide "analiza la caida de MRR", se entrega
+  analisis, no solo una respuesta breve.
+- En `analizar`, si el usuario pide "hazme un reporte visual", se entrega
+  analisis y reporte visual.
+- En `plan`, si el usuario pide "incluye una grafica", el plan debe incluir una
+  grafica como artefacto.
+- En cualquier modo, si el usuario pide "grafica esto", se genera grafica cuando
+  existan datos suficientes y seguros.
+
 ## Reportes Dentro del Chat
 
 Un reporte ya no es una vista SSR separada. Es un artefacto generado por una
@@ -63,6 +107,30 @@ Cada artefacto de reporte debe incluir:
 - `freshness`
 - `warnings`
 - `trace_id`
+
+## Edicion Interna de Graficas
+
+Cada grafica generada debe permitir la accion `Editar grafica`. Esta accion abre
+un panel contextual con un mini chat ligado al `artifact_id` de la grafica. El
+mini chat edita la configuracion visual, no ejecuta SQL por si mismo.
+
+Cambios permitidos:
+
+- tipo de grafica;
+- titulo;
+- ejes;
+- series visibles;
+- orden;
+- agregacion visual;
+- formato numerico;
+- etiquetas;
+- leyenda;
+- colores;
+- anotaciones.
+
+Si el usuario pide cambiar datos, periodo, metrica, fuente o filtro de negocio,
+el sistema debe crear una nueva solicitud en el chat principal. Esa nueva
+solicitud debe pasar nuevamente por SQL Safety Layer antes de consultar datos.
 
 ## Patrones de Guia
 

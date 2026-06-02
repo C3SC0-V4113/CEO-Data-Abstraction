@@ -43,8 +43,10 @@ La web app sera una interfaz ejecutiva minimalista chat-first:
 - Chatbot como unica vista autenticada.
 - Preguntas sugeridas para CEO.
 - Acciones rapidas dentro del chat.
+- Composer con modos `responder`, `analizar`, `reporte_visual` y `plan`.
 - Respuestas con tablas, KPIs, graficas y narrativa.
 - Artefactos de reporte generados bajo demanda dentro del hilo.
+- Mini chat contextual para editar graficas ya generadas.
 - Filtros conversacionales para periodo, cliente, proyecto, area o metrica.
 - Freshness, warnings y `trace_id` por respuesta.
 
@@ -73,6 +75,7 @@ Fastify sera el backend principal:
 - `POST /api/chat/messages`
 - `GET /api/chat/conversations`
 - `GET /api/chat/conversations/:conversation_id`
+- `POST /api/chat/artifacts/:artifact_id/chart-edits`
 - `GET /api/schema/catalog`
 - `GET /api/query/history`
 - `GET /api/health`
@@ -127,6 +130,7 @@ Un artefacto de reporte conversacional debe incluir:
 
 - `artifact_id`
 - `conversation_id`
+- `artifact_type`
 - `question`
 - `period`
 - `source_views`
@@ -149,6 +153,9 @@ Codex y Claude son clientes posibles via MCP.
 Responsabilidades:
 
 - Recibir pregunta en lenguaje natural.
+- Recibir `intent_mode` como complemento del prompt, no como filtro.
+- Extraer requisitos explicitos del prompt.
+- Construir `output_plan` combinando modo y requisitos explicitos.
 - Cargar rol, permisos, schema y views permitidas.
 - Cargar contexto conversacional minimo.
 - Construir contexto para el LLM.
@@ -159,6 +166,8 @@ Responsabilidades:
 - Generar respuesta ejecutiva.
 - Proponer visualizacion.
 - Persistir auditoria y artefactos conversacionales.
+- Editar `chart_spec` de graficas existentes sin ejecutar SQL nuevo cuando solo
+  cambie la configuracion visual.
 
 ### SQL Safety Layer
 
@@ -231,16 +240,34 @@ reemplaza las APIs web. La web SSR consume `/api/auth/*`, `/api/chat/*` y
 ### Flujo Chat-First
 
 1. El CEO escribe una pregunta o selecciona una sugerencia.
-2. Next.js envia mensaje a `POST /api/chat/messages`.
+2. Next.js envia mensaje a `POST /api/chat/messages` con `intent_mode`.
 3. Fastify valida JWT, rol y sesion.
-4. El LLM Orchestrator carga contexto permitido y estado conversacional.
-5. Si falta informacion, el sistema pide aclaracion.
-6. Si requiere datos, el LLM genera SQL candidato.
-7. SQL Safety Layer valida por AST, allowlists, rol y limites.
-8. Database Layer ejecuta con usuario read-only.
-9. El backend genera narrativa, tabla/grafica/KPI y warnings.
-10. Fastify registra auditoria y devuelve `trace_id`.
-11. Next.js renderiza el artefacto dentro del chat.
+4. El LLM Orchestrator extrae requisitos explicitos del prompt.
+5. El LLM Orchestrator combina `mode_requirements` y
+   `explicit_prompt_requirements` en un `output_plan`.
+6. El LLM Orchestrator carga contexto permitido y estado conversacional.
+7. Si falta informacion, el sistema pide aclaracion.
+8. Si requiere datos, el LLM genera SQL candidato.
+9. SQL Safety Layer valida por AST, allowlists, rol y limites.
+10. Database Layer ejecuta con usuario read-only.
+11. El backend genera narrativa, tabla/grafica/KPI, reporte o plan de accion
+    segun `output_plan`.
+12. Fastify registra auditoria y devuelve `trace_id`.
+13. Next.js renderiza el artefacto dentro del chat.
+
+### Flujo de Edicion de Grafica
+
+1. El CEO usa `Editar grafica` sobre un artefacto con `artifact_type = chart`.
+2. Next.js abre un panel contextual con mini chat ligado a `artifact_id`.
+3. Next.js envia instruccion a
+   `POST /api/chat/artifacts/:artifact_id/chart-edits`.
+4. Fastify valida JWT, rol, sesion y acceso al artefacto.
+5. El backend aplica la instruccion sobre `current_chart_spec`.
+6. Si la instruccion solo cambia visualizacion, responde con
+   `updated_chart_spec`.
+7. Si la instruccion pide cambiar datos, periodo, metrica o fuente, responde
+   `requires_new_query: true` y deriva la solicitud al chat principal.
+8. Cualquier nueva consulta de datos debe pasar por SQL Safety Layer.
 
 ### Flujo MCP
 
@@ -286,22 +313,56 @@ fuera del alcance.
 - Separar auth web de MCP; el frontend no debe usar `MCP_API_KEY`.
 - No usar Prisma como unica barrera de seguridad; las raw queries generadas por
   IA solo pueden ejecutarse despues de validacion AST.
+- Las ediciones de grafica no ejecutan SQL si solo modifican `chart_spec`.
+- Cambios de datos, periodo, metrica o fuente deben crear una nueva solicitud de
+  chat y volver a pasar por SQL Safety Layer.
 
 ## Respuesta Comun
 
 La web y MCP deben compartir una estructura:
+
+### Request de Chat
+
+`POST /api/chat/messages` recibe:
+
+```json
+{
+  "conversation_id": "conversation_uuid",
+  "content": "Analiza la caida de MRR e incluye una grafica",
+  "intent_mode": "analizar",
+  "context_artifact_id": "artifact_uuid"
+}
+```
+
+El backend deriva:
+
+```json
+{
+  "mode_requirements": ["analysis", "evidence"],
+  "explicit_prompt_requirements": ["chart"],
+  "output_plan": ["text", "chart"]
+}
+```
+
+`intent_mode` puede ser `responder`, `analizar`, `reporte_visual` o `plan`.
+El modo define la prioridad base, pero los requisitos explicitos del prompt se
+combinan con el modo y no se descartan.
+
+### Response de Chat
 
 ```json
 {
   "answer": "Resumen ejecutivo en lenguaje natural.",
   "sql": "SELECT ...",
   "data": [],
+  "artifacts": [],
   "chart": {
     "type": "line",
     "x": "month",
     "y": "mrr"
   },
   "warnings": [],
+  "suggested_questions": [],
   "metadata": {
     "client_type": "web",
     "rows": 12
@@ -316,6 +377,7 @@ Para artefactos generados en chat se extiende con:
 {
   "artifact_id": "artifact_uuid",
   "conversation_id": "conversation_uuid",
+  "artifact_type": "chart",
   "question": "Mostrar MRR y crecimiento de los ultimos 6 meses",
   "period": "last_6_months",
   "source_views": ["ceo_revenue_summary"],
@@ -329,6 +391,45 @@ Para artefactos generados en chat se extiende con:
     "x": "month",
     "y": "mrr"
   }
+}
+```
+
+Los valores permitidos de `artifact_type` para MVP son `text`, `table`, `kpi`,
+`chart`, `report` y `action_plan`.
+
+### Request de Edicion de Grafica
+
+`POST /api/chat/artifacts/:artifact_id/chart-edits` recibe:
+
+```json
+{
+  "instruction": "Cambiar a barras y resaltar marzo",
+  "current_chart_spec": {
+    "type": "line",
+    "x": "month",
+    "y": "mrr"
+  }
+}
+```
+
+Responde:
+
+```json
+{
+  "updated_chart_spec": {
+    "type": "bar",
+    "x": "month",
+    "y": "mrr",
+    "annotations": [
+      {
+        "x": "2026-03",
+        "label": "Caida relevante"
+      }
+    ]
+  },
+  "change_summary": "Se cambio la grafica a barras y se anoto marzo.",
+  "warnings": [],
+  "requires_new_query": false
 }
 ```
 

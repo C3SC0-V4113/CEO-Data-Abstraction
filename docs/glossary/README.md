@@ -21,6 +21,12 @@ warnings, freshness y `trace_id`.
 Definicion gobernada de metricas, dimensiones, filtros y relaciones. Evita que
 cada usuario o modelo interprete los datos de forma distinta.
 
+## Chart Spec
+
+Objeto estructurado que describe como renderizar una grafica: tipo, ejes,
+series, formato, etiquetas, leyenda, colores y anotaciones. Puede editarse sin
+consultar datos nuevos si solo cambia la configuracion visual.
+
 ## Chatbot Ejecutivo
 
 Interfaz principal del MVP despues del login. Permite que el CEO pregunte en
@@ -70,6 +76,19 @@ clientes posibles via MCP.
 Valor cuantificable de negocio, como ventas totales, margen, cumplimiento de
 meta o ticket promedio.
 
+## Mini Chat de Grafica
+
+Panel contextual ligado a un `artifact_id` de tipo `chart`. Permite pedir
+cambios visuales sobre una grafica existente. Si el usuario pide cambiar datos,
+periodo, metrica o fuente, debe volver al chat principal y pasar por SQL Safety
+Layer.
+
+## Modo de Composer
+
+Opcion simple del composer que complementa el prompt y define la prioridad base
+de la respuesta. No funciona como filtro. Los modos del MVP son `responder`,
+`analizar`, `reporte_visual` y `plan`.
+
 ## Pregunta Sugerida
 
 Pregunta que el sistema propone al usuario segun su contexto, rol, datos
@@ -85,6 +104,12 @@ IA solo pueden ejecutarse despues de pasar por el SQL Safety Layer.
 
 Retrieval-Augmented Generation. Patron donde el modelo recupera informacion
 relevante desde documentos o bases de conocimiento antes de responder.
+
+## Requisito Explicito del Prompt
+
+Solicitud escrita directamente por el usuario, por ejemplo "analiza", "haz una
+grafica", "crea un reporte visual" o "incluye un plan". Debe combinarse con el
+modo de composer si es seguro y hay datos suficientes.
 
 ## Rol CEO
 

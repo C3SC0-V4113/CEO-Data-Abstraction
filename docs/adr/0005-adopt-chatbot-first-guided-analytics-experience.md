@@ -113,7 +113,13 @@ reducen el problema de prompt engineering sin volver a un dashboard.
   `/api/schema/catalog`.
 - `POST /api/chat/messages` debe devolver narrativa, datos, `chart_spec`,
   warnings y `trace_id`.
+- El composer usa `intent_mode` con valores `responder`, `analizar`,
+  `reporte_visual` y `plan`.
+- `intent_mode` complementa el prompt y no funciona como filtro; los requisitos
+  explicitos del usuario se combinan con el modo.
 - Los artefactos de reporte conversacional deben asociarse a `conversation_id`.
+- Las graficas generadas pueden editarse mediante mini chat contextual ligado a
+  `artifact_id`; cambiar datos requiere una nueva consulta segura.
 - JWT debe incluir `sub`, `role` y expiracion.
 - El middleware de autorizacion debe validar rol antes de exponer tools, schema o
   consultas.

@@ -203,12 +203,17 @@ Representa mensajes del usuario y del asistente.
 - `conversation_id`
 - `role`
 - `content`
+- `intent_mode`
+- `extracted_requirements`
+- `output_plan`
 - `metadata`
 - `created_at`
 
 ### chat_artifacts
 
 Representa tablas, KPIs, graficas o reportes generados dentro del chat.
+`artifact_type` puede ser `text`, `table`, `kpi`, `chart`, `report` o
+`action_plan`.
 
 - `id`
 - `conversation_id`
@@ -224,6 +229,24 @@ Representa tablas, KPIs, graficas o reportes generados dentro del chat.
 - `freshness`
 - `warnings`
 - `trace_id`
+- `created_at`
+
+### chart_edit_messages
+
+Representa el mini chat contextual para editar una grafica existente. Estas
+ediciones modifican `chart_spec` sobre datos ya validados. No ejecutan SQL salvo
+que se derive una nueva solicitud al chat principal.
+
+- `id`
+- `artifact_id`
+- `conversation_id`
+- `user_id`
+- `instruction`
+- `previous_chart_spec`
+- `updated_chart_spec`
+- `change_summary`
+- `requires_new_query`
+- `warnings`
 - `created_at`
 
 ## Reportes Persistentes Futuros
