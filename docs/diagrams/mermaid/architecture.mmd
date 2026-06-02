@@ -8,13 +8,22 @@ flowchart LR
     Next["Next.js SSR + shadcn/ui\nlogin + chatbot"]
   end
 
-  subgraph railwayApi["Backend - Railway (proyecto Fastify + TypeScript)"]
-    MCP["Remote MCP endpoint\nPOST /mcp"]
+  subgraph edge["Borde - API Gateways (Cloudflare)"]
+    WebGW["Web API Gateway\nTLS, rate limit, WAF, cuotas"]
+    McpGW["MCP API Gateway\nTLS, rate limit, WAF, cuotas por API key"]
+  end
+
+  subgraph railwayApi["Backend core - Railway (proyecto Fastify + TypeScript)"]
+    CoreAPI["Core Internal API\n/internal/core/*\n(service-to-service)"]
     Orchestrator["LLM Orchestrator"]
     Semantic["Semantic Metric Layer\nmetric catalog + MetricQuery\ndeterministic SQL generator"]
     Safety["SQL Safety Layer\nAST + allowlists\nSELECT only, LIMIT, timeout"]
     Prisma["Prisma ORM"]
     Audit["query_audit_log\npath: semantic | fallback_sql"]
+  end
+
+  subgraph mcpsvc["Servicio MCP - Railway (proyecto MCP independiente)"]
+    MCPsvc["MCP Service (adapter)\nPOST /mcp\nMCP_API_KEY + scope por tool\nsin acceso a DB"]
   end
 
   subgraph railwayDb["Datos - Railway PostgreSQL"]
@@ -29,10 +38,12 @@ flowchart LR
 
   CEO --> Browser
   Browser --> Next
-  Next -->|"HTTP APIs\n/api/auth/*\n/api/chat/*\n/api/schema/catalog"| Orchestrator
-  Next -. "does not call MCP directly" .- MCP
-  ExternalClients -->|"Bearer token\nMCP_API_KEY"| MCP
-  MCP --> Orchestrator
+  Next -->|"/api/auth/*\n/api/chat/*\n/api/schema/catalog"| WebGW
+  WebGW --> Orchestrator
+  ExternalClients -->|"Bearer MCP_API_KEY"| McpGW
+  McpGW --> MCPsvc
+  MCPsvc -->|"CORE_SERVICE_TOKEN\n/internal/core/*"| CoreAPI
+  CoreAPI --> Orchestrator
   Orchestrator -->|"compact metric catalog (cacheable)"| LLM
   Orchestrator -->|"MetricQuery (default)\nor fallback SQL"| Semantic
   Semantic -->|"deterministic SQL"| Safety
@@ -40,4 +51,3 @@ flowchart LR
   Prisma --> Postgres
   Seed --> Postgres
   Orchestrator --> Audit
-  MCP --> Audit

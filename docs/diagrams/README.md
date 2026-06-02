@@ -10,11 +10,12 @@ con capa semantica y son la **fuente de verdad textual**. La arquitectura vigent
 en `docs/architecture/proposal.md`, ADR-0005 y ADR-0006.
 
 Los Mermaid estan **agrupados por infraestructura/proyecto**: Cliente, Frontend
-(Cloudflare Workers / Next.js), Backend (Railway / Fastify), Datos (Railway PostgreSQL)
-y Servicios externos (LLM Provider y clientes MCP). Los flowcharts usan `subgraph` y los
-diagramas de secuencia usan `box` (requiere Mermaid >= 9.4; soportado por mermaid.live y
-GitHub). El modelo LLM definido aparece nombrado: **GPT-5.2** (planificador) y
-**GPT-5 mini** (ligero).
+(Cloudflare Workers / Next.js), **Borde - API Gateways (Cloudflare)** (Web Gateway y MCP
+Gateway), **Servicio MCP (Railway, proyecto independiente)**, Backend core (Railway /
+Fastify, con la Core Internal API), Datos (Railway PostgreSQL) y Servicios externos
+(LLM Provider y clientes MCP). Los flowcharts usan `subgraph` y los diagramas de
+secuencia usan `box` (requiere Mermaid >= 9.4; soportado por mermaid.live y GitHub). El
+modelo LLM definido aparece nombrado: **GPT-5.2** (planificador) y **GPT-5 mini** (ligero).
 
 Los **drawio/xml** todavia reflejan el paradigma report-first y estan **pendientes de
 regenerar** a partir de los Mermaid. Las instrucciones por archivo estan en

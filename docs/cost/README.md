@@ -81,4 +81,6 @@ abarata las interacciones a volumen.
 - Asume un promedio de tokens por interaccion; preguntas muy pesadas o con muchas
   filas pueden costar mas. Ajusta el perfil de tokens para escenarios conservadores.
 - No incluye costo de embeddings/RAG (solo se activa si el catalogo crece) ni de
-  infraestructura; agrega filas si tu despliegue los necesita.
+  infraestructura (API Gateways Cloudflare, servicio MCP, backend, PostgreSQL); esos son
+  costos de plataforma aparte del consumo de tokens LLM. Agrega filas si tu despliegue
+  los necesita.

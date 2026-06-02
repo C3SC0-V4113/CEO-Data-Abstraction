@@ -3,8 +3,10 @@
 ## Opcion Adoptada: Web Chat-First + MCP sobre Fastify + Prisma
 
 La solucion propuesta combina una web app ejecutiva en Next.js SSR + shadcn/ui
-con un servidor MCP remoto. Ambos frentes consumen el mismo backend Fastify +
-TypeScript, Prisma ORM y el mismo pipeline Text-to-SQL seguro.
+con un servidor MCP remoto. Ambos frentes reutilizan el **mismo pipeline Text-to-SQL
+seguro** (Fastify + TypeScript + Prisma): la web lo consume por sus APIs HTTP y el MCP a
+traves de un **servicio independiente** que llama a la Core Internal API del backend. El
+trafico entra por **API Gateways (Cloudflare)**, uno por servicio (ver ADR-0007).
 
 La web deja de ser dashboard/report-first. El MVP tendra login y una vista de
 chatbot donde el CEO solicita analisis, recibe narrativa ejecutiva y ve reportes

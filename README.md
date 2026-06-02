@@ -31,14 +31,18 @@ remoto protegido por tokens/API keys.
 - **Login MVP**: un solo usuario CEO creado por seed/setup; no habra registro
   publico ni multiusuario en MVP. La sesion web se manejara con JWT y rol
   `CEO`.
-- **Backend principal**: Fastify + TypeScript para APIs, MCP remoto,
-  autenticacion, orquestacion LLM, validacion SQL y acceso read-only a datos.
+- **API Gateways (Cloudflare)**: dos gateways de borde para control de trafico
+  (rate limiting, throttling, cuotas, WAF), uno frente al backend web y otro frente
+  al servicio MCP. Ver ADR-0007.
+- **Backend principal**: Fastify + TypeScript para APIs, autenticacion, orquestacion
+  LLM, capa semantica, validacion SQL y acceso read-only a datos. Expone una Core
+  Internal API (`/internal/core/*`) para uso del servicio MCP.
 - **Despliegue backend**: Railway recomendado para MVP con Fastify + Prisma;
-  Cloudflare Workers como opcion si Prisma edge/Accelerate y MCP funcionan en la
-  prueba tecnica.
-- **MCP remoto**: endpoint seguro `https://.../mcp`, consumible por Claude
-  Desktop, Cursor/Codex u otros clientes compatibles. La web no consume MCP
-  directamente.
+  Cloudflare Workers como opcion si Prisma edge/Accelerate funcionan en la prueba tecnica.
+- **Servicio MCP independiente**: servicio propio (Railway, detras del MCP Gateway),
+  adapter delgado que llama a la Core Internal API; endpoint seguro `https://.../mcp`
+  consumible por Claude Desktop, Cursor/Codex u otros. No accede a la DB. La web no
+  consume MCP directamente.
 - **ORM y base de datos**: Prisma ORM sobre PostgreSQL serverless,
   preferiblemente Railway Postgres para MVP.
 - **Seguridad**: usuario de base de datos estrictamente read-only, validacion SQL

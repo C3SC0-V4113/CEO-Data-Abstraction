@@ -20,8 +20,10 @@ propias son solo login y chatbot.
 | Capa | Tecnologia | Despliegue Preferido |
 | --- | --- | --- |
 | Frontend web | Next.js SSR + shadcn/ui | Cloudflare Workers con OpenNext/Cloudflare |
+| API Gateway web | Cloudflare (API Shield/WAF/Rate Limiting) | Borde Cloudflare frente al backend |
+| API Gateway MCP | Cloudflare (API Shield/WAF/Rate Limiting) | Borde Cloudflare frente al servicio MCP |
 | Backend API | Fastify + TypeScript | Railway recomendado para MVP |
-| MCP remoto | Fastify + MCP TypeScript SDK | Mismo backend Fastify |
+| MCP remoto | Servicio MCP independiente + MCP TypeScript SDK | Servicio propio en Railway (no Fastify) |
 | ORM | Prisma ORM | Backend Fastify |
 | Base de datos | PostgreSQL | Railway Postgres recomendado para MVP |
 | Auth web | JWT + rol `CEO` | Fastify + cookies httpOnly o bearer interno |
@@ -65,6 +67,25 @@ Rutas SSR propuestas:
 
 `/` debe redirigir a `/chat` si existe sesion valida o a `/login` si no existe.
 
+### API Gateway (Cloudflare)
+
+El trafico entra por un borde de **dos gateways Cloudflare**, uno por servicio (ver
+ADR-0007):
+
+- **Web API Gateway**: frente al backend Fastify. Aplica politicas para el trafico
+  interactivo del CEO.
+- **MCP API Gateway**: frente al servicio MCP. Aplica politicas para el trafico
+  programatico de clientes externos (cuotas por API key, limites mas estrictos).
+
+Responsabilidades de ambos gateways: TLS, rate limiting, throttling, cuotas, WAF/IP
+rules, limite de tamano de request, routing y chequeos coarse (presencia de JWT o API
+key), mas observabilidad. Los gateways hacen control de trafico y auth coarse; la
+autorizacion fina queda en los servicios (el backend valida firma JWT + rol; el servicio
+MCP valida `MCP_API_KEY` + scope por tool).
+
+La **API interna core** del backend (ver mas abajo) no se expone por el Web API Gateway;
+es de uso interno entre servicios.
+
 ### Fastify + TypeScript
 
 Fastify sera el backend principal:
@@ -79,11 +100,18 @@ Fastify sera el backend principal:
 - `GET /api/schema/catalog`
 - `GET /api/query/history`
 - `GET /api/health`
-- `POST /mcp`
+- `POST /internal/core/ask` (API interna; uso service-to-service, no publica)
+- `GET /internal/core/schema-catalog` (API interna; uso service-to-service)
 
-Fastify concentra autenticacion, JWT, autorizacion por rol, MCP, LLM
-Orchestrator, validacion SQL, ejecucion read-only, auditoria y respuesta comun
-en TypeScript.
+`POST /mcp` ya no vive en Fastify: se movio al **servicio MCP independiente**
+(ver mas abajo y ADR-0007).
+
+Fastify concentra autenticacion, JWT, autorizacion por rol, LLM Orchestrator,
+Capa Semantica, validacion SQL, ejecucion read-only, auditoria y respuesta comun
+en TypeScript. Ademas expone una **API interna core** (`/internal/core/*`) que
+publica ese pipeline a llamadores internos de confianza (el servicio MCP) con auth
+service-to-service (`CORE_SERVICE_TOKEN` y/o red privada de Railway); esta API no se
+enruta por el Web API Gateway.
 
 ### Authentication and Authorization
 
@@ -232,16 +260,22 @@ Views sugeridas:
 - `ceo_support_health`
 - `ceo_financial_runway`
 
-### MCP Remote Server
+### Servicio MCP Independiente
 
-El endpoint MCP remoto debe estar protegido:
+El MCP ya no vive dentro de Fastify: es un **servicio desplegable propio** (Railway,
+detras del MCP API Gateway). Funciona como **adapter delgado**: maneja el protocolo MCP,
+valida `MCP_API_KEY` y el scope por tool, y mapea cada tool a la **API interna core** del
+backend Fastify (`/internal/core/*`). El servicio MCP **no** accede a la base de datos ni
+porta credenciales de DB o del proveedor LLM.
+
+El endpoint MCP remoto (ahora en el host del servicio MCP) debe estar protegido:
 
 ```text
-POST https://<host>/mcp
+POST https://<host-mcp>/mcp
 Authorization: Bearer <token>
 ```
 
-Tools candidatas:
+Tools candidatas (cada una mapea a una llamada a la API interna core):
 
 - `describe_business_schema`
 - `ask_company_data`
@@ -249,9 +283,11 @@ Tools candidatas:
 - `suggest_executive_questions`
 - `generate_chart_spec`
 
-Las tools MCP usan los mismos servicios internos del chatbot, pero MCP no
-reemplaza las APIs web. La web SSR consume `/api/auth/*`, `/api/chat/*` y
-`/api/schema/*`; MCP queda expuesto solo para clientes externos compatibles.
+Asi se reutiliza una sola Capa Semantica + SQL Safety Layer + acceso read-only + auditoria
+(la logica de datos vive en la core API, no en el servicio MCP). La web SSR sigue
+consumiendo `/api/auth/*`, `/api/chat/*` y `/api/schema/*` a traves del Web API Gateway;
+el servicio MCP queda expuesto solo para clientes externos compatibles a traves del MCP
+API Gateway.
 
 ## Flujo de Datos
 
@@ -267,7 +303,8 @@ reemplaza las APIs web. La web SSR consume `/api/auth/*`, `/api/chat/*` y
 ### Flujo Chat-First
 
 1. El CEO escribe una pregunta o selecciona una sugerencia.
-2. Next.js envia mensaje a `POST /api/chat/messages` con `intent_mode`.
+2. Next.js envia mensaje a `POST /api/chat/messages` con `intent_mode`. La request pasa
+   por el **Web API Gateway** (TLS, rate limiting, WAF, routing) antes de llegar a Fastify.
 3. Fastify valida JWT, rol y sesion.
 4. El LLM Orchestrator extrae requisitos explicitos del prompt.
 5. El LLM Orchestrator combina `mode_requirements` y
@@ -300,13 +337,18 @@ reemplaza las APIs web. La web SSR consume `/api/auth/*`, `/api/chat/*` y
 
 ### Flujo MCP
 
-1. El CEO o usuario tecnico pregunta desde un cliente MCP.
-2. Fastify valida token y scope.
-3. El LLM Orchestrator carga el catalogo de metricas permitido y definiciones.
-4. El LLM produce un `MetricQuery` (o cae al fallback Text-to-SQL) si hace falta.
-5. SQL Safety Layer valida el SQL.
-6. Database Layer ejecuta con usuario read-only.
-7. Fastify registra auditoria y devuelve narrativa, datos y warnings.
+1. El CEO o usuario tecnico pregunta desde un cliente MCP externo.
+2. La request pasa por el **MCP API Gateway** (TLS, rate limiting, cuotas por API key, WAF).
+3. El **servicio MCP** valida `MCP_API_KEY` y el scope por tool, y mapea la tool a una
+   llamada a la **API interna core** del backend (`POST /internal/core/ask`) con auth
+   service-to-service.
+4. El backend (LLM Orchestrator) carga el catalogo de metricas permitido y definiciones.
+5. El LLM produce un `MetricQuery` (o cae al fallback Text-to-SQL) si hace falta; la Capa
+   Semantica compila el SQL.
+6. SQL Safety Layer valida el SQL.
+7. Database Layer ejecuta con usuario read-only.
+8. El backend registra auditoria y devuelve narrativa, datos y warnings al servicio MCP,
+   que responde al cliente con el formato MCP.
 
 ## Manejo del Contexto LLM
 
@@ -357,6 +399,9 @@ publicada no-Codex. Analisis y fuentes en `docs/cost/README.md` y
 
 ## Seguridad
 
+- Borde de **dos API Gateways Cloudflare** (web y MCP) con rate limiting, throttling,
+  cuotas, WAF/IP rules y limite de tamano antes de llegar a los servicios y al pipeline LLM.
+- Los gateways hacen auth coarse + control de trafico; la authz fina queda en los servicios.
 - Autenticacion obligatoria para web y MCP.
 - JWT para sesion web.
 - Bearer token/API key para MCP remoto.
@@ -372,6 +417,10 @@ publicada no-Codex. Analisis y fuentes en `docs/cost/README.md` y
 - No exponer schema sin autenticacion.
 - Separar tokens MCP de credenciales DB y LLM.
 - Separar auth web de MCP; el frontend no debe usar `MCP_API_KEY`.
+- El **servicio MCP no porta credenciales de DB ni del proveedor LLM**: solo llama a la
+  API interna core. Las credenciales de DB/LLM viven solo en el backend core.
+- La **API interna core** (`/internal/core/*`) usa auth service-to-service
+  (`CORE_SERVICE_TOKEN` y/o red privada) y no se enruta por el Web API Gateway.
 - No usar Prisma como unica barrera de seguridad; las raw queries generadas por
   IA solo pueden ejecutarse despues de validacion AST.
 - Las ediciones de grafica no ejecutan SQL si solo modifican `chart_spec`.

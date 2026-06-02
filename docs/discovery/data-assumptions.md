@@ -45,10 +45,20 @@ validarse en backend.
 
 Secrets relacionados:
 
-- `CEO_EMAIL`
-- `CEO_PASSWORD_HASH`
-- `JWT_SECRET`
-- `MCP_API_KEY`
+- `CEO_EMAIL` (backend)
+- `CEO_PASSWORD_HASH` (backend)
+- `JWT_SECRET` (backend)
+- `MCP_API_KEY` (ahora vive en el **servicio MCP**, no en Fastify)
+- `CORE_INTERNAL_URL` (servicio MCP -> base de la Core Internal API del backend)
+- `CORE_SERVICE_TOKEN` (auth service-to-service entre el servicio MCP y el backend)
+
+## Infraestructura y Borde
+
+El trafico entra por **dos API Gateways Cloudflare** (uno por servicio): Web API Gateway
+frente al backend Fastify y MCP API Gateway frente al servicio MCP. Cada uno aplica rate
+limiting, throttling, cuotas, WAF/IP rules y limite de tamano (config en Cloudflare). El
+**servicio MCP** es un despliegue independiente (Railway) que llama a la Core Internal API
+del backend; **no recibe** `DATABASE_URL_*` ni claves del proveedor LLM. Ver ADR-0007.
 
 ## Datos Ficticios y Seed
 

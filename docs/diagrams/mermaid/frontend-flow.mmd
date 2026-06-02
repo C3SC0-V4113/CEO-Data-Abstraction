@@ -3,7 +3,10 @@ sequenceDiagram
   box Cloudflare Workers (Next.js)
   participant Next as Next.js SSR
   end
-  box Railway - Fastify
+  box Borde - Cloudflare
+  participant WebGW as Web API Gateway
+  end
+  box Railway - Fastify (core)
   participant API as Fastify API
   participant Orch as LLM Orchestrator
   participant Sem as Semantic Metric Layer
@@ -18,7 +21,8 @@ sequenceDiagram
 
   CEO->>Next: Open /login then /chat
   CEO->>Next: Ask question (mode: responder/analizar/reporte_visual/plan)
-  Next->>API: POST /api/chat/messages (content, intent_mode)
+  Next->>WebGW: POST /api/chat/messages (content, intent_mode)
+  WebGW->>API: forward (TLS, rate limit, WAF)
   API->>Orch: Validate JWT+role, build output_plan
   Orch->>LLM: NL + compact metric catalog (cacheable)
   LLM-->>Orch: MetricQuery (or fallback SQL)
@@ -28,9 +32,11 @@ sequenceDiagram
   DB-->>Safety: Rows
   Safety-->>Orch: Result set
   Orch-->>API: answer, data, chart_spec, warnings, trace_id
-  API-->>Next: Chat artifact (text/kpi/table/chart)
+  API-->>WebGW: Chat artifact (text/kpi/table/chart)
+  WebGW-->>Next: Chat artifact
   Next-->>CEO: Render artifact inside thread
   CEO->>Next: Edit chart (mini-chat on artifact_id)
-  Next->>API: POST /api/chat/artifacts/:id/chart-edits
+  Next->>WebGW: POST /api/chat/artifacts/:id/chart-edits
+  WebGW->>API: forward
   API->>LLM: Apply visual instruction (light model)
   API-->>Next: updated_chart_spec (no new SQL if only visual)

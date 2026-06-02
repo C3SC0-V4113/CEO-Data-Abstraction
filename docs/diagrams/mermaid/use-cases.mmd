@@ -8,27 +8,41 @@ flowchart TB
     LLM["LLM Provider\nPlanner: GPT-5.2\nLight: GPT-5 mini"]
   end
 
+  subgraph edge["Borde - API Gateways (Cloudflare)"]
+    WebGW["Web API Gateway\nrate limit / WAF / cuotas"]
+    McpGW["MCP API Gateway\nrate limit / WAF / cuotas"]
+  end
+
   subgraph frontend["Frontend - Cloudflare (Next.js)"]
     Login["Login (JWT, role CEO)"]
     Chat["Ask in chatbot"]
   end
 
-  subgraph backend["Backend - Railway (Fastify)"]
+  subgraph mcpsvc["Servicio MCP - Railway"]
+    MCPsvc["MCP Service (adapter)\nMCP_API_KEY + scope"]
+  end
+
+  subgraph backend["Backend core - Railway (Fastify)"]
+    CoreAPI["Core Internal API\n/internal/core/*"]
     Clarify["Clarify if ambiguous"]
     Metric["Build MetricQuery\n(semantic layer)"]
     Fallback["Fallback Text-to-SQL\n(out of catalog)"]
     Safety["SQL Safety Layer\n(read-only)"]
     Artifact["Chat artifact\ntext / kpi / table / chart"]
     EditChart["Edit chart (visual only)"]
-    MCPQuery["Query through MCP"]
     Audit["Audit (path: semantic | fallback_sql)"]
   end
 
   CEO --> Login
   Login --> Chat
-  Chat --> Clarify
-  Chat --> Metric
-  Chat --> Fallback
+  Chat --> WebGW
+  WebGW --> Clarify
+  WebGW --> Metric
+  WebGW --> Fallback
+  External --> McpGW
+  McpGW --> MCPsvc
+  MCPsvc --> CoreAPI
+  CoreAPI --> Metric
   Metric -. "uses" .-> LLM
   Fallback -. "uses" .-> LLM
   Metric --> Safety
@@ -36,6 +50,3 @@ flowchart TB
   Safety --> Artifact
   Artifact --> EditChart
   Artifact --> Audit
-  External --> MCPQuery
-  MCPQuery --> Metric
-  MCPQuery --> Audit

@@ -10,6 +10,20 @@ consultar datos y producir una respuesta o accion.
 Notificacion generada cuando una metrica cruza un umbral, cambia de forma
 anomala o requiere atencion segun reglas y contexto.
 
+## API Gateway
+
+Capa de borde que controla el trafico antes de llegar a un servicio: TLS, rate
+limiting, throttling, cuotas, WAF/IP rules, limite de tamano y routing, mas auth
+coarse y observabilidad. En este proyecto se usan **dos gateways Cloudflare**, uno
+frente al backend web (Web API Gateway) y otro frente al servicio MCP (MCP API Gateway).
+Ver ADR-0007.
+
+## Auth Service-to-Service
+
+Autenticacion entre servicios internos (no de usuario final). El servicio MCP llama a la
+Core Internal API del backend con `CORE_SERVICE_TOKEN` y/o red privada; esa API no se
+expone por el Web API Gateway.
+
 ## Artefacto de Chat
 
 Resultado estructurado generado dentro de una conversacion. Puede ser una tabla,
@@ -36,6 +50,13 @@ y contrato. Se entrega al LLM de forma compacta y cacheable, no como DDL crudo.
 Objeto estructurado que describe como renderizar una grafica: tipo, ejes,
 series, formato, etiquetas, leyenda, colores y anotaciones. Puede editarse sin
 consultar datos nuevos si solo cambia la configuracion visual.
+
+## Core Internal API
+
+API interna del backend Fastify (`/internal/core/*`) que publica el pipeline
+(Orchestrator + Capa Semantica + SQL Safety Layer + read-only + auditoria) a llamadores
+internos de confianza, como el servicio MCP. Usa auth service-to-service y no se enruta
+por el Web API Gateway.
 
 ## Chatbot Ejecutivo
 
@@ -78,7 +99,15 @@ cada request protegida.
 ## MCP
 
 Model Context Protocol. Protocolo para exponer herramientas y contexto a modelos
-o agentes como Codex y Claude.
+o agentes como Codex y Claude. En este proyecto se sirve desde un **servicio MCP
+independiente** (ya no embebido en Fastify; ver ADR-0007).
+
+## Servicio MCP (standalone)
+
+Servicio desplegable propio (Railway, detras del MCP API Gateway) que implementa el
+protocolo MCP como adapter delgado: valida `MCP_API_KEY` y el scope por tool, y mapea cada
+tool a la Core Internal API del backend. No accede a la base de datos ni porta credenciales
+de DB/LLM; toda la logica de datos vive en el backend core.
 
 ## LLM Orchestrator
 

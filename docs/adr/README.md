@@ -13,6 +13,7 @@ Este directorio contiene Architecture Decision Records (ADRs) para la propuesta
 | [0004](0004-adopt-single-ceo-login-and-railway-backend-for-mvp.md) | Adoptar login unico CEO y Railway backend para MVP | Proposed | 2026-06-01 |
 | [0005](0005-adopt-chatbot-first-guided-analytics-experience.md) | Adoptar chatbot ejecutivo como experiencia principal | Proposed | 2026-06-01 |
 | [0006](0006-adopt-headless-semantic-metrics-layer-and-model-strategy.md) | Adoptar capa semantica de metricas headless y estrategia de modelos | Proposed | 2026-06-02 |
+| [0007](0007-adopt-api-gateways-and-standalone-mcp-service.md) | Adoptar API Gateways y servicio MCP independiente | Proposed | 2026-06-02 |
 
 ## Crear un Nuevo ADR
 

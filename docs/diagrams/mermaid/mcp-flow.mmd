@@ -3,9 +3,14 @@ sequenceDiagram
   actor Client as MCP Client
   participant LLM as LLM Provider (GPT-5.2 / GPT-5 mini)
   end
-  box Railway - Fastify
-  participant MCP as Fastify MCP Endpoint
-  participant Auth as API Key Auth
+  box Borde - Cloudflare
+  participant McpGW as MCP API Gateway
+  end
+  box Servicio MCP - Railway
+  participant MCPsvc as MCP Service (adapter)
+  end
+  box Backend core - Railway (Fastify)
+  participant Core as Core Internal API
   participant Orch as LLM Orchestrator
   participant Sem as Semantic Metric Layer
   participant Safety as SQL Safety Layer
@@ -16,10 +21,11 @@ sequenceDiagram
   participant DB as PostgreSQL (ceo_* views)
   end
 
-  Client->>MCP: POST /mcp with Bearer token
-  MCP->>Auth: Validate MCP_API_KEY
-  Auth-->>MCP: Scope accepted
-  MCP->>Orch: ask_company_data / describe_business_schema
+  Client->>McpGW: POST /mcp with Bearer token
+  McpGW->>MCPsvc: forward (rate limited, WAF)
+  MCPsvc->>MCPsvc: Validate MCP_API_KEY + tool scope
+  MCPsvc->>Core: POST /internal/core/ask (CORE_SERVICE_TOKEN)
+  Core->>Orch: Run pipeline
   Orch->>LLM: NL + compact metric catalog (cacheable)
   LLM-->>Orch: MetricQuery (or fallback SQL)
   Orch->>Sem: MetricQuery
@@ -28,6 +34,7 @@ sequenceDiagram
   Sem->>Prisma: Execute read-only query
   Prisma->>DB: SELECT from ceo_* view
   DB-->>Prisma: Rows
-  Orch->>Audit: Store trace_id, path, MetricQuery, SQL, client
-  Orch-->>MCP: Answer, data, warnings
-  MCP-->>Client: MCP response
+  Orch->>Audit: Store trace_id, path, MetricQuery, SQL
+  Core-->>MCPsvc: answer, data, warnings, trace_id
+  MCPsvc-->>McpGW: MCP response
+  McpGW-->>Client: MCP response

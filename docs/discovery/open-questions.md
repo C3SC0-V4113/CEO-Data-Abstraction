@@ -72,6 +72,15 @@ no vistas separadas.
   (ligero + planificador). Default razonado: Claude Sonnet/Haiku, intercambiable por
   configuracion. La decision por costo se apoya en `docs/cost/llm-cost-calculator.xlsx`.
 
+### API Gateways y Servicio MCP (ADR-0007)
+
+- El trafico entra por dos API Gateways Cloudflare (uno por servicio): web y MCP, con
+  rate limiting, throttling, cuotas, WAF y routing.
+- El MCP deja de vivir dentro de Fastify y pasa a ser un servicio independiente (adapter
+  delgado) que llama a la Core Internal API del backend con auth service-to-service.
+- El servicio MCP no porta credenciales de DB ni LLM; una sola Safety Layer + read-only +
+  auditoria en el backend core.
+
 ### Experiencia
 
 - Login y chatbot son las unicas interfaces principales del MVP.
@@ -101,3 +110,7 @@ no vistas separadas.
 - Decidir cuando activar RAG/embeddings sobre el catalogo (a partir de que tamano).
 - Evaluar si conviene migrar la capa semantica a dbt Semantic Layer al escalar a
   multiples roles y fuentes.
+- Calibrar los limites de rate limiting / cuotas por canal (web vs MCP).
+- Decidir red privada de Railway vs solo `CORE_SERVICE_TOKEN` para proteger la Core
+  Internal API.
+- Definir el despliegue concreto del servicio MCP (region, escalado) y su observabilidad.

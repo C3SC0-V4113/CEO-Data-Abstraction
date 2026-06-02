@@ -141,6 +141,9 @@ falla la validacion de aplicacion, la base aun debe rechazar escrituras.
 
 - Supersedes ADR-0001: Adoptar una estrategia MCP-first para acceso a datos con
   IA.
+- Refinada por ADR-0006: agrega la capa semantica de metricas antes del SQL Safety Layer.
+- Refinada por ADR-0007: el MCP pasa a ser un servicio independiente (ya no dentro de
+  Fastify) y se agrega un borde de API Gateways. El resto de ADR-0002 sigue vigente.
 
 ## References
 
