@@ -86,9 +86,12 @@ borde, no del pipeline de datos.
   (`/internal/core/*`). El servicio MCP **no** accede a la base de datos ni porta credenciales
   de DB/LLM.
 - La **API interna core** del backend expone el pipeline (Orchestrator + Capa Semantica + SQL
-  Safety Layer + acceso read-only + auditoria) a llamadores internos de confianza con **auth
-  service-to-service** (`CORE_SERVICE_TOKEN` y/o red privada de Railway). No es publica; no pasa
-  por el Web API Gateway.
+  Safety Layer + acceso read-only + auditoria) a llamadores internos de confianza. Se protege
+  con **defensa en profundidad**: la **red privada de Railway** (`*.railway.internal`) como
+  **frontera primaria** (no recibe dominio publico ni se enruta por el Web API Gateway) y el
+  **`CORE_SERVICE_TOKEN`** como **segunda capa** (verificado en cada request). El backend rechaza
+  cualquier `/internal/*` que llegue por la interfaz publica y cualquier request sin token de
+  servicio valido. mTLS queda como evolucion futura, fuera del scope del MVP.
 - Reparto de responsabilidades: **gateways = control de trafico + auth coarse**; **servicios =
   authz fina** (backend valida firma JWT + rol; servicio MCP valida `MCP_API_KEY` + scope).
 
@@ -120,8 +123,10 @@ un costo aceptable frente a la duplicacion del pipeline y el riesgo de divergenc
 ### Risks and Mitigations
 
 - Riesgo: la core API interna queda expuesta publicamente por error.
-  Mitigacion: no enrutarla por el Web API Gateway; red privada de Railway + `CORE_SERVICE_TOKEN`;
-  rechazar llamadas sin token de servicio valido.
+  Mitigacion (defensa en profundidad, decidida): red privada de Railway como frontera primaria
+  (solo hostname interno `*.railway.internal`, sin dominio publico, no enrutada por el Web API
+  Gateway) + `CORE_SERVICE_TOKEN` como segunda capa; el backend rechaza `/internal/*` por
+  interfaz publica y requests sin token de servicio valido.
 - Riesgo: rate limits mal calibrados bloquean al CEO o no frenan abuso.
   Mitigacion: politicas separadas por gateway; iniciar conservador y ajustar con metricas.
 - Riesgo: el servicio MCP duplica logica con el tiempo.
@@ -134,9 +139,13 @@ un costo aceptable frente a la duplicacion del pipeline y el riesgo de divergenc
 - Endpoints: `POST /mcp` vive ahora en el **servicio MCP** (su propio host detras del MCP
   Gateway), no en Fastify. El backend expone `POST /internal/core/ask` (y afines) para uso
   interno del servicio MCP.
-- Variables de entorno nuevas: `CORE_INTERNAL_URL` y `CORE_SERVICE_TOKEN` (servicio MCP ->
+- Variables de entorno nuevas: `CORE_INTERNAL_URL` (apunta al hostname interno de Railway,
+  p. ej. `https://backend.railway.internal:PORT`) y `CORE_SERVICE_TOKEN` (servicio MCP ->
   backend). `MCP_API_KEY` ahora se configura en el servicio MCP. Config de rate limit/cuotas
   por gateway en Cloudflare.
+- La Core Internal API se enlaza solo a la red privada (sin dominio publico) y valida
+  `CORE_SERVICE_TOKEN` en cada request; mantener `/internal/*` fuera del routing del Web API
+  Gateway. Rotar `CORE_SERVICE_TOKEN` via variables de Railway.
 - El servicio MCP no recibe `DATABASE_URL_*` ni claves del proveedor LLM.
 - Despliegue sugerido MVP: servicio MCP como segundo servicio en Railway, misma region que el
   backend; ambos detras de gateways Cloudflare.

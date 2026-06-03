@@ -80,6 +80,9 @@ no vistas separadas.
   delgado) que llama a la Core Internal API del backend con auth service-to-service.
 - El servicio MCP no porta credenciales de DB ni LLM; una sola Safety Layer + read-only +
   auditoria en el backend core.
+- La Core Internal API se protege con defensa en profundidad: red privada de Railway
+  (`*.railway.internal`) como frontera primaria + `CORE_SERVICE_TOKEN` como segunda capa.
+  mTLS queda como evolucion futura, fuera del MVP.
 
 ### Experiencia
 
@@ -111,6 +114,4 @@ no vistas separadas.
 - Evaluar si conviene migrar la capa semantica a dbt Semantic Layer al escalar a
   multiples roles y fuentes.
 - Calibrar los limites de rate limiting / cuotas por canal (web vs MCP).
-- Decidir red privada de Railway vs solo `CORE_SERVICE_TOKEN` para proteger la Core
-  Internal API.
 - Definir el despliegue concreto del servicio MCP (region, escalado) y su observabilidad.

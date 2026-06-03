@@ -419,8 +419,10 @@ publicada no-Codex. Analisis y fuentes en `docs/cost/README.md` y
 - Separar auth web de MCP; el frontend no debe usar `MCP_API_KEY`.
 - El **servicio MCP no porta credenciales de DB ni del proveedor LLM**: solo llama a la
   API interna core. Las credenciales de DB/LLM viven solo en el backend core.
-- La **API interna core** (`/internal/core/*`) usa auth service-to-service
-  (`CORE_SERVICE_TOKEN` y/o red privada) y no se enruta por el Web API Gateway.
+- La **API interna core** (`/internal/core/*`) se protege con defensa en profundidad: la
+  **red privada de Railway** (`*.railway.internal`) como frontera primaria (sin dominio
+  publico, no enrutada por el Web API Gateway) y el **`CORE_SERVICE_TOKEN`** como segunda
+  capa, validado en cada request. El backend rechaza `/internal/*` por interfaz publica.
 - No usar Prisma como unica barrera de seguridad; las raw queries generadas por
   IA solo pueden ejecutarse despues de validacion AST.
 - Las ediciones de grafica no ejecutan SQL si solo modifican `chart_spec`.

@@ -34,8 +34,9 @@ El transporte debe ser HTTP remoto compatible con MCP. El servicio debe validar
 token/API key antes de exponer schema, tools o cualquier metadata.
 
 El token se configurara como secreto `MCP_API_KEY` en el servicio MCP. El frontend no
-debe recibir ni usar este secreto. El servicio MCP llama a la core API con
-`CORE_SERVICE_TOKEN` (auth service-to-service); no recibe `DATABASE_URL_*` ni claves LLM.
+debe recibir ni usar este secreto. El servicio MCP llama a la core API sobre la **red
+privada de Railway** (`*.railway.internal`) con `CORE_SERVICE_TOKEN` (auth
+service-to-service); no recibe `DATABASE_URL_*` ni claves LLM.
 
 ## Tools MCP Candidatas
 

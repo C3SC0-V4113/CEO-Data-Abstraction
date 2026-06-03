@@ -60,6 +60,11 @@ limiting, throttling, cuotas, WAF/IP rules y limite de tamano (config en Cloudfl
 **servicio MCP** es un despliegue independiente (Railway) que llama a la Core Internal API
 del backend; **no recibe** `DATABASE_URL_*` ni claves del proveedor LLM. Ver ADR-0007.
 
+La **Core Internal API** se protege con defensa en profundidad: la **red privada de Railway**
+(`*.railway.internal`) como frontera primaria (sin dominio publico, no enrutada por el Web API
+Gateway) + `CORE_SERVICE_TOKEN` validado en cada request. `CORE_INTERNAL_URL` apunta al
+hostname interno de Railway. mTLS queda como evolucion futura, fuera del MVP.
+
 ## Datos Ficticios y Seed
 
 Para el MVP se trabajara con datos ficticios generados por nosotros mediante
