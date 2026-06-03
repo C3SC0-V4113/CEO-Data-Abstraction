@@ -1,0 +1,34 @@
+flowchart TD
+  Question["Pregunta CEO en lenguaje natural"]
+  Orch["LLM Orchestrator\nclasifica intencion, periodo y alcance"]
+  Planner["LLM Planner\nGPT-5.2"]
+  MetricContext["MetricCatalogContext\nmetricas, sinonimos, dimensiones,\nfiltros, grano, reglas MetricQuery"]
+  BusinessContext["BusinessSchemaContext\nviews ceo_*, columnas, grano,\nrelaciones, filtros y funciones allowlisted"]
+  MetricQuery["MetricQuery\nmetric, dimensions, filters,\ntime_range, compare_to, limit"]
+  Validator{"Catalog Validator\nMetricQuery valido?"}
+  Clarify["Pedir aclaracion\no marcar fuera de cobertura"]
+  Compiler["Deterministic SQL Compiler\nMetricQuery + catalogo -> SQL"]
+  CandidateSQL["LLM SQL Candidate\nsolo fallback_sql"]
+  Safety["SQL Safety Layer\nAST, allowlists, SELECT only,\nLIMIT, timeout, read-only"]
+  DB["PostgreSQL read-only\nviews ceo_*"]
+  Audit["query_audit_log\npath, MetricQuery, SQL, trace_id"]
+  FallbackLog["warn log\nanalytics.fallback_sql_triggered"]
+  Promote["Discovery backlog\nampliar Metric Layer si es recurrente"]
+
+  Question --> Orch
+  Orch --> MetricContext
+  MetricContext --> Planner
+  Planner -->|"camino default"| MetricQuery
+  MetricQuery --> Validator
+  Validator -->|"si"| Compiler
+  Validator -->|"no / ambiguo"| Clarify
+  Clarify -->|"fuera de cobertura establecida"| BusinessContext
+  Planner -->|"fuera de cobertura"| BusinessContext
+  BusinessContext --> CandidateSQL
+  CandidateSQL --> Safety
+  Compiler --> Safety
+  Safety --> DB
+  Safety --> Audit
+  CandidateSQL --> FallbackLog
+  FallbackLog --> Audit
+  FallbackLog --> Promote

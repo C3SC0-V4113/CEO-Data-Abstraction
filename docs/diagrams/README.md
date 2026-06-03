@@ -38,7 +38,11 @@ Ver el detalle por archivo (nodos, aristas, que eliminar) en
 
 - [architecture](drawio/architecture.drawio): login, chatbot, Fastify, LLM
   Orchestrator, **Capa Semantica/Metric Layer**, SQL Safety Layer, Prisma,
-  PostgreSQL `ceo_*`, MCP externo. Sin dashboards/reportes/snapshots.
+  PostgreSQL `ceo_*`, MCP externo. Separa `MetricCatalogContext` (camino semantico) y
+  `BusinessSchemaContext` (fallback SQL). Sin dashboards/reportes/snapshots.
+- [semantic-layer-internal-flow](mermaid/semantic-layer-internal-flow.mmd): flujo interno
+  de la Metric Layer, rol del LLM, `MetricQuery`, fallback SQL gobernado, log
+  `analytics.fallback_sql_triggered` y promocion de preguntas recurrentes al catalogo.
 - [database-model](drawio/database-model.drawio): conversations, chat_messages,
   chat_artifacts, auth, auditoria con `path`/`metric_query`. Sin
   report_definitions/report_snapshots/dashboard_widgets.

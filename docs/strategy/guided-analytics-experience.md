@@ -188,20 +188,25 @@ El estado conversacional debe conservar:
 - Proponer preguntas siguientes.
 - Generar especificaciones de visualizacion.
 - Detectar anomalias con evidencia.
-- Recuperar definiciones desde capa semantica o RAG.
+- Recuperar definiciones desde la capa semantica.
 - Mantener continuidad entre preguntas del mismo hilo.
 
 ## Seguridad y Gobernanza
 
 - El frontend no genera ni ejecuta SQL.
-- El LLM solo produce SQL candidato.
-- Todo SQL candidato pasa por SQL Safety Layer.
+- En el camino principal, el LLM produce `MetricQuery` y la capa semantica compila SQL
+  determinista.
+- El LLM solo produce SQL candidato en fallback Text-to-SQL, usando
+  `BusinessSchemaContext` allowlisted.
+- Todo SQL generado o candidato pasa por SQL Safety Layer.
 - El runtime usa PostgreSQL read-only.
 - El rol `CEO` limita tools, views, columnas y acciones.
 - JWT se valida en cada request web.
 - MCP mantiene autenticacion separada por bearer token/API key.
 - Auditoria registra prompts, SQL candidato, SQL validado, rol, cliente,
   warnings y `trace_id`.
+- Cada uso de fallback SQL emite log `warn` `analytics.fallback_sql_triggered` para
+  evaluar si la pregunta debe convertirse en metrica gobernada.
 
 ## Como Reduce Prompt Engineering
 

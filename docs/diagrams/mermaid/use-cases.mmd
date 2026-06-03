@@ -27,6 +27,7 @@ flowchart TB
     Clarify["Clarify if ambiguous"]
     Metric["Build MetricQuery\n(semantic layer)"]
     Fallback["Fallback Text-to-SQL\n(out of catalog)"]
+    FallbackLog["warn log\nanalytics.fallback_sql_triggered"]
     Safety["SQL Safety Layer\n(read-only)"]
     Artifact["Chat artifact\ntext / kpi / table / chart"]
     EditChart["Edit chart (visual only)"]
@@ -47,6 +48,8 @@ flowchart TB
   Fallback -. "uses" .-> LLM
   Metric --> Safety
   Fallback --> Safety
+  Fallback --> FallbackLog
+  FallbackLog --> Audit
   Safety --> Artifact
   Artifact --> EditChart
   Artifact --> Audit

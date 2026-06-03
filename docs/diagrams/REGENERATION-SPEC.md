@@ -9,6 +9,10 @@ ADR-0005/0006.
 Regla general para todos: eliminar dashboards, rutas de reportes, snapshots y widgets
 como superficies; el reporte es un **artefacto dentro del chat**. Insertar la
 **Capa Semantica (Metric Layer)** entre el LLM Orchestrator y el SQL Safety Layer.
+Separar visualmente el camino principal (`MetricCatalogContext` -> LLM -> `MetricQuery`
+-> SQL determinista) del fallback (`BusinessSchemaContext` -> LLM -> SQL candidato).
+Cada fallback debe mostrar el log `analytics.fallback_sql_triggered` conectado a
+auditoria y discovery para ampliar el catalogo.
 **Agrupar los nodos por infraestructura/proyecto** (contenedores en draw.io): Cliente,
 Frontend (Cloudflare Workers / Next.js), **Borde - API Gateways (Cloudflare)** (Web Gateway
 + MCP Gateway), **Servicio MCP (Railway, proyecto independiente)**, Backend core (Railway /
@@ -27,11 +31,14 @@ Fuente: `mermaid/architecture.mmd`. Nodos y aristas:
 - External MCP clients (Claude Desktop / Cursor / Codex) -> **MCP API Gateway
   (Cloudflare)** con "Bearer MCP_API_KEY" -> **Servicio MCP (Railway, adapter)** ->
   **Core Internal API** del backend (`/internal/core/*`, `CORE_SERVICE_TOKEN`).
-- Backend Fastify: Core Internal API -> LLM Orchestrator -> (a) LLM Provider
-  (Planner GPT-5.2 / Light GPT-5 mini) con "compact metric catalog (cacheable)";
-  (b) Semantic Metric Layer con "MetricQuery (default) or fallback SQL".
+- Backend Fastify: Core Internal API -> LLM Orchestrator -> (a) `MetricCatalogContext`
+  -> LLM Provider (Planner GPT-5.2 / Light GPT-5 mini) -> `MetricQuery` -> Semantic
+  Metric Layer; (b) `BusinessSchemaContext` -> LLM Provider -> Fallback Text-to-SQL
+  SQL candidate.
 - Semantic Metric Layer -> SQL Safety Layer (AST, allowlists, SELECT only, LIMIT,
   timeout) -> Prisma ORM -> PostgreSQL (read-only, `ceo_*` views).
+- Fallback Text-to-SQL -> SQL Safety Layer y -> `warn log:
+  analytics.fallback_sql_triggered` -> query_audit_log.
 - Prisma seed -> PostgreSQL. Orchestrator -> query_audit_log (path: semantic |
   fallback_sql). El Servicio MCP **no** toca la DB.
 - Contenedores por infra: Cliente, Frontend (Cloudflare), Borde - API Gateways
@@ -44,16 +51,35 @@ Fuente: `mermaid/architecture.mmd`. Nodos y aristas:
 
 Fuente: `mermaid/use-cases.mmd`. CEO -> Login -> Chat -> **Web API Gateway** -> {Clarify,
 MetricQuery (semantic), Fallback Text-to-SQL}; ambos -> SQL Safety Layer -> Chat artifact
--> Edit chart (visual); Artifact -> Audit. External MCP client -> **MCP API Gateway** ->
+-> Edit chart (visual); Fallback Text-to-SQL -> log `analytics.fallback_sql_triggered`
+-> Audit. External MCP client -> **MCP API Gateway** ->
 **Servicio MCP** -> **Core Internal API** -> MetricQuery. Agrupar por infra (Borde,
 Servicio MCP, Backend core). Eliminar "View executive dashboard" y "Filter report".
+
+## semantic-layer-internal-flow (mermaid/semantic-layer-internal-flow.mmd)
+
+Fuente textual nueva para explicar internamente la Metric Layer. Si se genera version
+draw.io, debe mostrar:
+
+- Pregunta CEO -> LLM Orchestrator -> LLM Planner (GPT-5.2).
+- Camino principal: `MetricCatalogContext` -> `MetricQuery` -> Catalog Validator ->
+  Deterministic SQL Compiler -> SQL Safety Layer -> PostgreSQL read-only.
+- Camino fallback: fuera de cobertura -> `BusinessSchemaContext` -> LLM SQL Candidate ->
+  SQL Safety Layer.
+- Fallback log `analytics.fallback_sql_triggered` -> query_audit_log -> Discovery backlog
+  para ampliar el catalogo.
+- Recalcar que el LLM escribe SQL solo en fallback; en el camino semantico el LLM produce
+  `MetricQuery`.
 
 ## frontend-flow (drawio/frontend-flow.drawio, xml/frontend-flow.drawio.xml)
 
 Fuente: `mermaid/frontend-flow.mmd`. Secuencia login -> chat -> POST
 /api/chat/messages -> **Web API Gateway** -> Fastify API -> Orchestrator -> LLM
-(GPT-5.2) -> MetricQuery -> Semantic Layer -> SQL Safety Layer -> PostgreSQL read-only
--> artifact renderizado en el hilo -> mini-chat de edicion de grafica
+(GPT-5.2) con `MetricCatalogContext` -> MetricQuery -> Semantic Layer -> SQL Safety
+Layer -> PostgreSQL read-only. Incluir rama alternativa: Orchestrator ->
+`BusinessSchemaContext` -> LLM SQL candidate -> Fallback Text-to-SQL -> SQL Safety Layer
+-> log `analytics.fallback_sql_triggered`. Luego artifact renderizado en el hilo ->
+mini-chat de edicion de grafica
 (`/api/chat/artifacts/:id/chart-edits`, sin SQL nuevo si solo es visual). Agrupar los
 participantes por infra con cajas (Cloudflare, Borde, Railway Fastify, Datos, Externo).
 Eliminar "Open /dashboard", "GET /api/dashboard/overview" y "report snapshots".
@@ -62,10 +88,12 @@ Eliminar "Open /dashboard", "GET /api/dashboard/overview" y "report snapshots".
 
 Fuente: `mermaid/mcp-flow.mmd`. Cliente MCP -> **MCP API Gateway** -> **Servicio MCP**
 (valida MCP_API_KEY + scope) -> **Core Internal API** (`CORE_SERVICE_TOKEN`) -> Orchestrator
--> LLM (GPT-5.2) -> Semantic Metric Layer (MetricQuery) -> SQL Safety Layer -> Prisma ->
-PostgreSQL read-only; auditoria con `path` y `metric_query` en el backend. El Servicio MCP
-no toca la DB. Agrupar participantes por infra con cajas (Externo, Borde, Servicio MCP,
-Backend core, Datos).
+-> LLM (GPT-5.2) con `MetricCatalogContext` -> Semantic Metric Layer (`MetricQuery`) ->
+SQL Safety Layer -> Prisma -> PostgreSQL read-only. Incluir rama fallback con
+`BusinessSchemaContext`, SQL candidate y log `analytics.fallback_sql_triggered`.
+Auditoria con `path`, `metric_query`, razon de fallback y SQL en el backend. El Servicio
+MCP no toca la DB. Agrupar participantes por infra con cajas (Externo, Borde, Servicio
+MCP, Backend core, Datos).
 
 ## database-model (drawio/database-model.drawio, xml/database-model.drawio.xml)
 

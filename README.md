@@ -64,9 +64,11 @@ El orchestrator coordina el flujo completo:
 3. Construye contexto controlado para el modelo.
 4. Produce un `MetricQuery` que la capa semantica compila a SQL determinista
    (o, fuera de cobertura, cae al fallback Text-to-SQL auditado).
-5. Valida el SQL antes de ejecutarlo.
-6. Ejecuta con credenciales read-only.
-7. Devuelve respuesta ejecutiva, datos, graficas, warnings y `trace_id`.
+5. Si usa fallback, emite log `warn` `analytics.fallback_sql_triggered` para ampliar la
+   Metric Layer si la pregunta se repite.
+6. Valida el SQL antes de ejecutarlo.
+7. Ejecuta con credenciales read-only.
+8. Devuelve respuesta ejecutiva, datos, graficas, warnings y `trace_id`.
 
 ## Estructura
 

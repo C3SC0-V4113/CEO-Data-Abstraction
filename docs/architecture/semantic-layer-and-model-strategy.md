@@ -59,22 +59,50 @@ roles y fuentes, migrar a dbt Semantic Layer queda como evolucion natural.
 
 Tres piezas: **catalogo de metricas** (definicion gobernada), **MetricQuery**
 (lo que el LLM produce) y **generador SQL determinista** (lo que compila a SQL).
+El LLM sigue siendo importante, pero su responsabilidad cambia: no escribe SQL en el
+camino principal; interpreta la pregunta y selecciona una metrica gobernada.
 
 ```text
 Pregunta NL
    |
    v
-[LLM planificador] --(MetricQuery)--> [Validacion contra catalogo]
-                                            |
-                                            v
-                                  [Generador SQL determinista]
-                                            |
-                                            v
-                                  [SQL Safety Layer (AST, LIMIT, timeout)]
-                                            |
-                                            v
-                                  [PostgreSQL read-only, views ceo_*]
+[LLM Orchestrator]
+   |
+   v
+[LLM planificador + MetricCatalogContext]
+   |
+   +--> MetricQuery --> [Validacion contra catalogo]
+   |                         |
+   |                         v
+   |               [Generador SQL determinista]
+   |                         |
+   |                         v
+   |               [SQL Safety Layer (AST, LIMIT, timeout)]
+   |                         |
+   |                         v
+   |               [PostgreSQL read-only, views ceo_*]
+   |
+   +--> fuera de cobertura --> [Fallback Text-to-SQL + BusinessSchemaContext]
+                                 |
+                                 v
+                       [SQL Safety Layer (misma barrera)]
+                                 |
+                                 v
+                       [fallback log + auditoria]
 ```
+
+Flujo interno esperado:
+
+1. El orquestador clasifica intencion, alcance, periodo y si la pregunta requiere datos.
+2. Para el camino principal construye `MetricCatalogContext`: metricas permitidas,
+   sinonimos, dimensiones, filtros, grano y reglas del contrato `MetricQuery`.
+3. El LLM planificador devuelve un `MetricQuery`, no SQL.
+4. El backend valida el `MetricQuery` contra el catalogo versionado.
+5. El compilador determinista genera SQL sobre views `ceo_*`.
+6. El SQL Safety Layer valida AST, allowlists, limites y rol read-only.
+7. Si la pregunta no cabe en el catalogo, el orquestador usa fallback Text-to-SQL
+   gobernado con `BusinessSchemaContext`, registra `path = fallback_sql` y emite un log
+   para desarrollo.
 
 ### 2.1 Catalogo de metricas
 
@@ -201,40 +229,140 @@ El SQL generado todavia pasa por el SQL Safety Layer (AST, solo `SELECT`, allowl
 
 ### 2.4 Fallback Text-to-SQL (gobernado)
 
-Para preguntas exploratorias fuera del catalogo, el orquestador genera SQL candidato
-como en la propuesta original, pero el camino se marca `path = fallback_sql` en
-auditoria y atraviesa exactamente las mismas barreras (SQL Safety Layer + read-only).
-Se mide cuantas preguntas caen aqui; las recurrentes se promueven a metricas del
+Para preguntas exploratorias fuera del catalogo, el orquestador puede pedir al LLM
+planificador que genere SQL candidato. Este camino no recibe la base cruda ni el DDL
+completo: recibe un `BusinessSchemaContext` reducido y versionado.
+
+Contrato minimo de `BusinessSchemaContext`:
+
+```json
+{
+  "allowed_views": ["ceo_revenue_summary", "ceo_project_margin"],
+  "allowed_columns": {
+    "ceo_revenue_summary": [
+      {
+        "name": "month",
+        "type": "date",
+        "description": "Mes contable de la metrica.",
+        "format": "yyyy-mm"
+      },
+      {
+        "name": "mrr",
+        "type": "numeric",
+        "description": "Ingreso recurrente mensual activo al cierre del periodo.",
+        "format": "currency_usd"
+      }
+    ]
+  },
+  "view_grain": {
+    "ceo_revenue_summary": "una fila por mes, plan y segmento"
+  },
+  "business_descriptions": {
+    "ceo_revenue_summary": "Resumen ejecutivo de revenue recurrente para el CEO."
+  },
+  "allowed_relationships": [
+    {
+      "from": "ceo_project_margin.customer_id",
+      "to": "ceo_customer_health.customer_id",
+      "description": "Relacion permitida para analizar margen de proyecto por salud del cliente."
+    }
+  ],
+  "allowed_filters": ["month", "plan_name", "customer_segment", "status"],
+  "allowed_functions": ["sum", "avg", "count", "min", "max", "date_trunc"],
+  "safety_rules": [
+    "SELECT only",
+    "use only allowed_views and allowed_columns",
+    "must include LIMIT",
+    "no DDL, DML or multiple statements"
+  ]
+}
+```
+
+El fallback se marca `path = fallback_sql` en auditoria y atraviesa exactamente las
+mismas barreras que el camino semantico: SQL Safety Layer, allowlists, timeout, max rows
+y rol PostgreSQL read-only.
+
+Cada uso del fallback tambien emite un log estructurado:
+
+```json
+{
+  "level": "warn",
+  "event": "analytics.fallback_sql_triggered",
+  "trace_id": "uuid",
+  "conversation_id": "uuid",
+  "user_role": "CEO",
+  "question": "texto sanitizado o resumido",
+  "fallback_reason": "metric_not_found",
+  "missing_metric_or_dimension": "gross_margin_by_account_manager",
+  "schema_context_version": "business-schema:v1",
+  "candidate_sql_hash": "sha256:...",
+  "validated_sql_hash": "sha256:...",
+  "timestamp": "2026-06-03T10:00:00Z"
+}
+```
+
+El log debe servir para desarrollo y discovery, no para exponer datos sensibles. Si el
+SQL candidato incluye valores sensibles, se registra hash o version sanitizada. Las
+preguntas recurrentes que caen al fallback se revisan periodicamente; si representan una
+necesidad ejecutiva estable, se promueven a nuevas metricas, dimensiones o filtros del
 catalogo.
 
 ---
 
 ## 3. Estrategia de entrega de schema al LLM
 
-Principio: **nunca volcar el DDL crudo completo**. Se entregan tres capas, de barata a
-cara, y se prefiere la mas barata que responda la pregunta.
+Principio: **nunca volcar el DDL crudo completo**. La informacion enviada al modelo se
+elige segun el camino de ejecucion y siempre sale de catalogos gobernados por rol.
 
-1. **Catalogo de metricas compacto en el system prompt (cacheable).**
-   El catalogo de metricas permitidas para el rol se serializa de forma compacta
-   (nombre, label, descripcion corta, dimensiones, filtros) y se envia como contexto
-   estable. Al ser estable entre interacciones, se beneficia de **prompt caching**: el
-   costo de esos tokens se amortiza en hits de cache. Es la fuente principal del LLM
-   planificador. Tamano estimado: ver supuestos de la calculadora (`docs/cost/`).
+### 3.1 `MetricCatalogContext` para el camino semantico
 
-2. **Recuperacion selectiva (RAG) cuando el catalogo crezca.**
-   Si el catalogo supera lo que conviene mantener siempre en contexto, se indexan las
-   definiciones/sinonimos como embeddings y se recuperan las top-k metricas relevantes
-   a la pregunta (patron Denodo/BIRD: vectorizar metadata y recuperar por similitud).
-   Para el MVP (catalogo pequeno) probablemente no haga falta; queda como evolucion.
+El catalogo de metricas permitidas para el rol se serializa de forma compacta (nombre,
+label, descripcion corta, sinonimos, dimensiones, filtros, grano, `source_view`, formato
+y reglas del contrato `MetricQuery`). Se envia como contexto estable y cacheable para el
+LLM planificador.
 
-3. **Detalle on-demand.**
-   Para precisar columnas o sinonimos puntuales, el orquestador consulta
-   `GET /api/schema/catalog` o la tool MCP `describe_business_schema`, que devuelven el
-   catalogo permitido por rol, no el DDL crudo.
+Este contexto responde preguntas como:
 
-Esta estrategia es la que mas mueve el costo: al enviar un catalogo compacto y
-cacheable en vez del schema completo, los tokens de entrada por interaccion bajan
-sustancialmente (ver hoja `Supuestos` de la calculadora).
+- que metricas oficiales existen;
+- que sinonimos reconoce cada metrica;
+- que dimensiones y filtros se pueden pedir;
+- que periodo o grano temporal soporta la metrica;
+- que salida visual por defecto conviene.
+
+El LLM usa este paquete para devolver `MetricQuery`. No recibe tablas internas, DDL,
+credenciales ni columnas fuera del rol. El costo baja porque este contexto cambia poco y
+puede beneficiarse de prompt caching.
+
+### 3.2 `BusinessSchemaContext` para fallback SQL
+
+Cuando la pregunta queda fuera del catalogo, el fallback Text-to-SQL recibe un contexto
+distinto y mas restrictivo. Este paquete describe solo el schema de negocio permitido
+para generar un SQL candidato seguro:
+
+- `allowed_views`: views analiticas `ceo_*` disponibles para el rol.
+- `allowed_columns`: columnas permitidas por view, con tipo, descripcion semantica y
+  formato.
+- `view_grain`: grano de cada view para evitar agregaciones o joins incorrectos.
+- `business_descriptions`: explicacion corta de para que sirve cada view.
+- `allowed_relationships`: joins permitidos y su significado de negocio.
+- `allowed_filters`: campos filtrables.
+- `allowed_functions`: funciones SQL permitidas.
+- `safety_rules`: reglas obligatorias que el modelo debe cumplir antes de que el SQL
+  candidato pase al SQL Safety Layer.
+
+El fallback es mas flexible que `MetricQuery`, pero no es SQL libre sobre la base cruda.
+El modelo no ve tablas fuente no autorizadas, relaciones no permitidas ni DDL completo.
+
+### 3.3 Detalle on-demand autenticado
+
+Para inspeccion o herramientas externas, `GET /api/schema/catalog` y la tool MCP
+`describe_business_schema` devuelven el catalogo permitido por rol. Pueden incluir
+`MetricCatalogContext` y, si el rol/tool lo permite, `BusinessSchemaContext` sanitizado.
+Nunca deben devolver schema crudo completo ni objetos internos no autorizados.
+
+Esta estrategia es la que mas mueve el costo: al enviar catalogos compactos y cacheables
+en vez del schema completo, los tokens de entrada por interaccion bajan sustancialmente
+(ver hoja `Supuestos` de la calculadora).
 
 ---
 
@@ -294,8 +422,6 @@ Costo mensual por par segun la calculadora (defaults: 1 CEO, 20 interacciones/di
 - **Ligero GPT-5 mini.** ~3x mas barato que Claude Haiku para clasificacion,
   aclaraciones, `chart_spec` y sugerencias, con calidad suficiente; mismo proveedor que
   el planificador (un SDK, un billing, caching consistente).
-- **Embeddings (si se activa RAG): modelo de embeddings barato del proveedor elegido.**
-
 **Matices honestos:** Gemini 2.5 Pro + Flash es el par mas barato (~$259/mes a 100
 usuarios) pero no aparece en los resultados nombrados del benchmark de capa semantica,
 asi que su exactitud esta menos validada; es la opcion si el presupuesto manda y se
@@ -335,11 +461,13 @@ para calcular el costo por N usuarios e interacciones.
   determinista compila SQL sobre views `ceo_*`.
 - Fallback Text-to-SQL gobernado para lo exploratorio; ambos caminos pasan por SQL
   Safety Layer y rol read-only.
-- Schema al LLM en tres capas (catalogo compacto cacheable -> RAG -> detalle on-demand);
-  nunca DDL crudo completo.
+- Schema al LLM con dos contextos gobernados: `MetricCatalogContext` para el camino
+  semantico y `BusinessSchemaContext` para fallback; nunca DDL crudo completo.
 - Modelos por routing de dos niveles, agnostico de proveedor, **default GPT-5.2
   (planificador) + GPT-5 mini (ligero)**, decidido cruzando exactitud (benchmark) y
   costo (calculadora) e intercambiable por configuracion.
+- RAG/embeddings quedan fuera del alcance actual; solo podrian evaluarse como evolucion
+  futura si el catalogo crece mas alla de lo razonable para prompt caching.
 
 ## Referencias
 

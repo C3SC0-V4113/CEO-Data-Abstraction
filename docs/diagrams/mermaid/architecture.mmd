@@ -16,9 +16,13 @@ flowchart LR
   subgraph railwayApi["Backend core - Railway (proyecto Fastify + TypeScript)"]
     CoreAPI["Core Internal API\n/internal/core/*\n(service-to-service)"]
     Orchestrator["LLM Orchestrator"]
-    Semantic["Semantic Metric Layer\nmetric catalog + MetricQuery\ndeterministic SQL generator"]
+    MetricContext["MetricCatalogContext\ncacheable metric catalog"]
+    BusinessContext["BusinessSchemaContext\nfallback allowlisted schema"]
+    Semantic["Semantic Metric Layer\nMetricQuery validator\ndeterministic SQL generator"]
+    FallbackSQL["Fallback Text-to-SQL\nLLM SQL candidate"]
     Safety["SQL Safety Layer\nAST + allowlists\nSELECT only, LIMIT, timeout"]
     Prisma["Prisma ORM"]
+    FallbackLog["warn log\nanalytics.fallback_sql_triggered"]
     Audit["query_audit_log\npath: semantic | fallback_sql"]
   end
 
@@ -44,9 +48,16 @@ flowchart LR
   McpGW --> MCPsvc
   MCPsvc -->|"CORE_SERVICE_TOKEN\n/internal/core/*"| CoreAPI
   CoreAPI --> Orchestrator
-  Orchestrator -->|"compact metric catalog (cacheable)"| LLM
-  Orchestrator -->|"MetricQuery (default)\nor fallback SQL"| Semantic
+  Orchestrator --> MetricContext
+  MetricContext -->|"MetricCatalogContext\n(default semantic path)"| LLM
+  LLM -->|"MetricQuery"| Semantic
+  Orchestrator --> BusinessContext
+  BusinessContext -->|"BusinessSchemaContext\n(fallback only)"| LLM
+  LLM -->|"SQL candidate\nfallback_sql"| FallbackSQL
   Semantic -->|"deterministic SQL"| Safety
+  FallbackSQL -->|"candidate SQL"| Safety
+  FallbackSQL --> FallbackLog
+  FallbackLog --> Audit
   Safety --> Prisma
   Prisma --> Postgres
   Seed --> Postgres

@@ -328,10 +328,19 @@ Registra cada interaccion web o MCP.
 - `path` (`semantic` o `fallback_sql`)
 - `question`
 - `metric_query`
+- `fallback_reason`
+- `fallback_schema_context_version`
+- `missing_metric_or_dimension`
 - `generated_sql`
 - `validated_sql`
+- `candidate_sql_hash`
+- `validated_sql_hash`
 - `validation_status`
 - `created_at`
+
+Cuando `path = fallback_sql`, el backend tambien debe emitir un log `warn`
+`analytics.fallback_sql_triggered` para que desarrollo revise si la pregunta debe
+promoverse al catalogo de metricas.
 
 ### metric_snapshots
 

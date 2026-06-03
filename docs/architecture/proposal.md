@@ -186,13 +186,17 @@ Responsabilidades:
 - Construir `output_plan` combinando modo y requisitos explicitos.
 - Cargar rol, permisos, schema y views permitidas.
 - Cargar contexto conversacional minimo.
-- Construir contexto para el LLM (catalogo de metricas compacto, no DDL crudo).
+- Construir contexto para el LLM segun camino: `MetricCatalogContext` para
+  `MetricQuery` y `BusinessSchemaContext` para fallback SQL. Ningun camino recibe DDL
+  crudo completo.
 - Pedir aclaraciones si la pregunta es ambigua.
 - Camino por defecto: producir un `MetricQuery` validado contra el catalogo de
   metricas y dejar que la Capa Semantica compile el SQL de forma determinista.
 - Camino de fallback: generar SQL candidato solo para preguntas exploratorias fuera
   de cobertura del catalogo (marcado como `path = fallback_sql`).
 - Enviar el SQL (semantico o fallback) al SQL Safety Layer.
+- Emitir log estructurado `warn` `analytics.fallback_sql_triggered` cada vez que se use
+  fallback SQL, sin exponer datos sensibles.
 - Ejecutar SQL validado.
 - Generar respuesta ejecutiva.
 - Proponer visualizacion.
@@ -222,7 +226,10 @@ Piezas:
   SQL Safety Layer.
 
 El Text-to-SQL libre queda como **fallback** auditado para preguntas exploratorias
-fuera del catalogo, sujeto a las mismas barreras.
+fuera del catalogo, sujeto a las mismas barreras. En ese camino el LLM recibe un
+`BusinessSchemaContext` reducido (views `ceo_*`, columnas, relaciones, filtros y
+funciones allowlisted), no la base cruda. Cada uso genera un log de desarrollo para
+decidir si la pregunta debe promoverse al catalogo de metricas.
 
 ### SQL Safety Layer
 
@@ -311,14 +318,15 @@ API Gateway.
    `explicit_prompt_requirements` en un `output_plan`.
 6. El LLM Orchestrator carga contexto permitido y estado conversacional.
 7. Si falta informacion, el sistema pide aclaracion.
-8. Si requiere datos, el LLM produce un `MetricQuery` validado contra el catalogo de
-   metricas; la Capa Semantica lo compila a SQL de forma determinista. Si la pregunta
-   esta fuera de cobertura, cae al fallback Text-to-SQL (auditado).
+8. Si requiere datos, el LLM usa `MetricCatalogContext` y produce un `MetricQuery`
+   validado contra el catalogo de metricas; la Capa Semantica lo compila a SQL de forma
+   determinista. Si la pregunta esta fuera de cobertura, usa `BusinessSchemaContext` y
+   cae al fallback Text-to-SQL auditado.
 9. SQL Safety Layer valida por AST, allowlists, rol y limites.
 10. Database Layer ejecuta con usuario read-only.
 11. El backend genera narrativa, tabla/grafica/KPI, reporte o plan de accion
     segun `output_plan`.
-12. Fastify registra auditoria y devuelve `trace_id`.
+12. Fastify registra auditoria, emite log de fallback si aplica y devuelve `trace_id`.
 13. Next.js renderiza el artefacto dentro del chat.
 
 ### Flujo de Edicion de Grafica
@@ -343,38 +351,41 @@ API Gateway.
    llamada a la **API interna core** del backend (`POST /internal/core/ask`) con auth
    service-to-service.
 4. El backend (LLM Orchestrator) carga el catalogo de metricas permitido y definiciones.
-5. El LLM produce un `MetricQuery` (o cae al fallback Text-to-SQL) si hace falta; la Capa
-   Semantica compila el SQL.
+5. El LLM produce un `MetricQuery` si la pregunta esta cubierta por el catalogo; si no,
+   usa `BusinessSchemaContext` para generar SQL candidato de fallback.
 6. SQL Safety Layer valida el SQL.
 7. Database Layer ejecuta con usuario read-only.
-8. El backend registra auditoria y devuelve narrativa, datos y warnings al servicio MCP,
-   que responde al cliente con el formato MCP.
+8. El backend registra auditoria, emite log de fallback si aplica y devuelve narrativa,
+   datos y warnings al servicio MCP, que responde al cliente con el formato MCP.
 
 ## Manejo del Contexto LLM
 
-El contexto enviado al LLM debe incluir solo lo necesario:
+El contexto enviado al LLM debe incluir solo lo necesario y depende del camino:
 
-- Rol del usuario.
-- Catalogo de metricas permitido (no DDL crudo).
-- Definiciones de metricas y sinonimos.
-- Reglas del contrato `MetricQuery`.
-- Limites de seguridad.
-- Historial conversacional minimo.
-- Ultimo artefacto relevante, si aplica.
+- **Contexto comun:** rol del usuario, permisos, limites de seguridad, historial
+  conversacional minimo y ultimo artefacto relevante, si aplica.
+- **`MetricCatalogContext` (camino semantico):** catalogo de metricas permitido,
+  definiciones, sinonimos, dimensiones, filtros, grano, `source_view`, formatos y reglas
+  del contrato `MetricQuery`. El LLM selecciona metrica/intencion y devuelve
+  `MetricQuery`; no escribe SQL.
+- **`BusinessSchemaContext` (fallback SQL):** solo views analiticas `ceo_*`, columnas
+  permitidas con descripcion de negocio, grano de cada view, relaciones/join paths
+  permitidos, filtros, funciones allowlisted y reglas de seguridad. El LLM genera SQL
+  candidato solo en este camino.
 
-No debe incluir secretos, credenciales, tablas bloqueadas ni datos sensibles
-fuera del alcance.
+No debe incluir secretos, credenciales, DDL crudo completo, tablas bloqueadas,
+relaciones no permitidas ni datos sensibles fuera del alcance.
 
 ### Estrategia de entrega de schema al LLM
 
-No se vuelca el DDL completo. Se usan tres capas, de barata a cara, prefiriendo la
-mas barata que responda (detalle en `docs/architecture/semantic-layer-and-model-strategy.md`):
+No se vuelca el DDL completo. Se usan contextos gobernados (detalle en
+`docs/architecture/semantic-layer-and-model-strategy.md`):
 
-1. **Catalogo de metricas compacto** en el system prompt, estable entre interacciones
+1. **`MetricCatalogContext` compacto** en el system prompt, estable entre interacciones
    y por tanto cacheable con prompt caching (amortiza su costo en tokens).
-2. **Recuperacion selectiva (RAG)** de las metricas relevantes por embedding de la
-   pregunta, solo si el catalogo crece mas alla de lo que conviene mantener en contexto.
-3. **Detalle on-demand** via `GET /api/schema/catalog` o la tool MCP
+2. **`BusinessSchemaContext` para fallback**, solo cuando el catalogo de metricas no
+   cubre la pregunta. Incluye metadata semantica allowlisted, no schema crudo.
+3. **Detalle on-demand autenticado** via `GET /api/schema/catalog` o la tool MCP
    `describe_business_schema`, que devuelven el catalogo permitido por rol.
 
 ### Estrategia de modelos
@@ -413,7 +424,11 @@ publicada no-Codex. Analisis y fuentes en `docs/cost/README.md` y
 - SQL Safety Layer antes de ejecutar.
 - Allowlist de schema.
 - `LIMIT`, timeout y max rows obligatorios.
-- Auditoria de prompts, SQL generado, SQL validado, cliente y usuario.
+- Auditoria de prompts, `path`, `MetricQuery`, razon de fallback, SQL candidato, SQL
+  validado, cliente, usuario y `trace_id`.
+- Log estructurado `warn` `analytics.fallback_sql_triggered` cuando el sistema usa
+  fallback SQL; debe usar hashes o contenido sanitizado si el SQL contiene valores
+  sensibles.
 - No exponer schema sin autenticacion.
 - Separar tokens MCP de credenciales DB y LLM.
 - Separar auth web de MCP; el frontend no debe usar `MCP_API_KEY`.

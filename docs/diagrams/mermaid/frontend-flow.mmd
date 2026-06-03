@@ -10,7 +10,9 @@ sequenceDiagram
   participant API as Fastify API
   participant Orch as LLM Orchestrator
   participant Sem as Semantic Metric Layer
+  participant Fallback as Fallback Text-to-SQL
   participant Safety as SQL Safety Layer
+  participant Audit as query_audit_log
   end
   box Railway - Datos
   participant DB as PostgreSQL (ceo_* views)
@@ -24,13 +26,22 @@ sequenceDiagram
   Next->>WebGW: POST /api/chat/messages (content, intent_mode)
   WebGW->>API: forward (TLS, rate limit, WAF)
   API->>Orch: Validate JWT+role, build output_plan
-  Orch->>LLM: NL + compact metric catalog (cacheable)
-  LLM-->>Orch: MetricQuery (or fallback SQL)
-  Orch->>Sem: MetricQuery
-  Sem->>Safety: Deterministic SQL
+  Orch->>LLM: NL + MetricCatalogContext (cacheable)
+  alt semantic path
+    LLM-->>Orch: MetricQuery
+    Orch->>Sem: MetricQuery
+    Sem->>Safety: Deterministic SQL
+  else fallback_sql path
+    Orch->>LLM: NL + BusinessSchemaContext (allowlisted)
+    LLM-->>Orch: SQL candidate
+    Orch->>Fallback: candidate SQL
+    Fallback->>Safety: Candidate SQL
+    Orch->>Audit: warn analytics.fallback_sql_triggered
+  end
   Safety->>DB: Validated SELECT (read-only)
   DB-->>Safety: Rows
   Safety-->>Orch: Result set
+  Orch->>Audit: Store trace_id, path, MetricQuery/SQL
   Orch-->>API: answer, data, chart_spec, warnings, trace_id
   API-->>WebGW: Chat artifact (text/kpi/table/chart)
   WebGW-->>Next: Chat artifact

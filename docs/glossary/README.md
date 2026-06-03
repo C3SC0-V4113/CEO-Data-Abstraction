@@ -30,6 +30,12 @@ Resultado estructurado generado dentro de una conversacion. Puede ser una tabla,
 grafica, KPI, resumen o reporte bajo demanda. Debe conservar contexto, datos,
 warnings, freshness y `trace_id`.
 
+## BusinessSchemaContext
+
+Contexto reducido y versionado que se entrega al LLM solo en el fallback Text-to-SQL.
+Incluye views `ceo_*`, columnas, grano, relaciones, filtros, funciones y reglas de
+seguridad allowlisted. No es DDL crudo ni acceso a la base completa.
+
 ## Capa Semantica
 
 Definicion gobernada de metricas, dimensiones, filtros y relaciones. Evita que
@@ -74,6 +80,16 @@ normalmente combinando acciones guiadas, explicaciones y conversacion.
 Camino secundario para preguntas exploratorias fuera de la cobertura del catalogo de
 metricas. El LLM genera SQL candidato (como en el enfoque original) que igual pasa por
 el SQL Safety Layer y el rol read-only. Se marca y audita como `path = fallback_sql`.
+Usa `BusinessSchemaContext`, no schema crudo. Cada uso debe emitir el log estructurado
+`analytics.fallback_sql_triggered` para avisar que la Metric Layer no cubrio la pregunta.
+
+## Fallback SQL Log
+
+Evento estructurado de nivel `warn` emitido cuando el backend usa fallback SQL. El evento
+se llama `analytics.fallback_sql_triggered` e incluye campos como `trace_id`,
+`conversation_id`, `user_role`, `fallback_reason`, `missing_metric_or_dimension`,
+`schema_context_version` y hashes de SQL. Sirve para que desarrollo y discovery decidan
+si conviene ampliar el catalogo de metricas.
 
 ## Forecast
 
@@ -128,6 +144,12 @@ Objeto estructurado que el LLM produce en el camino semantico: `metric`,
 catalogo de metricas (allowlist natural) y un generador determinista lo compila a SQL.
 El LLM no escribe SQL en este camino.
 
+## MetricCatalogContext
+
+Contexto compacto y cacheable entregado al LLM para el camino semantico. Contiene las
+metricas permitidas para el rol, sinonimos, dimensiones, filtros, grano, formatos,
+`source_view` y reglas del contrato `MetricQuery`. No incluye DDL crudo.
+
 ## Mini Chat de Grafica
 
 Panel contextual ligado a un `artifact_id` de tipo `chart`. Permite pedir
@@ -162,7 +184,9 @@ IA solo pueden ejecutarse despues de pasar por el SQL Safety Layer.
 ## RAG
 
 Retrieval-Augmented Generation. Patron donde el modelo recupera informacion
-relevante desde documentos o bases de conocimiento antes de responder.
+relevante desde documentos o bases de conocimiento antes de responder. En este MVP queda
+fuera del alcance del pipeline de Metric Layer; solo se evaluaria como evolucion futura
+si el catalogo crece mas alla de lo razonable para prompt caching.
 
 ## Requisito Explicito del Prompt
 

@@ -67,10 +67,12 @@ no vistas separadas.
   NL -> `MetricQuery` -> SQL determinista sobre views `ceo_*`, no SQL libre.
 - Text-to-SQL libre queda como fallback auditado para preguntas fuera del catalogo.
 - El schema se entrega al LLM como catalogo de metricas compacto y cacheable, no como
-  DDL crudo; RAG sobre definiciones solo si el catalogo crece.
+  DDL crudo. El fallback usa un `BusinessSchemaContext` allowlisted, no la base cruda.
 - La capa de modelos es agnostica de proveedor con routing de dos niveles
-  (ligero + planificador). Default razonado: Claude Sonnet/Haiku, intercambiable por
+  (ligero + planificador). Default razonado: GPT-5.2 + GPT-5 mini, intercambiable por
   configuracion. La decision por costo se apoya en `docs/cost/llm-cost-calculator.xlsx`.
+- Cada caida a fallback SQL debe emitir log `warn` `analytics.fallback_sql_triggered`
+  para que desarrollo y discovery evaluen si la pregunta debe convertirse en metrica.
 
 ### API Gateways y Servicio MCP (ADR-0007)
 
@@ -110,7 +112,8 @@ no vistas separadas.
   calculadora de costos.
 - Definir el umbral de cobertura del catalogo de metricas (que % de preguntas debe
   resolver el camino semantico antes de aceptar el fallback).
-- Decidir cuando activar RAG/embeddings sobre el catalogo (a partir de que tamano).
+- Evaluar RAG/embeddings solo como evolucion futura si el catalogo crece mas alla de lo
+  razonable para prompt caching; queda fuera del alcance actual.
 - Evaluar si conviene migrar la capa semantica a dbt Semantic Layer al escalar a
   multiples roles y fuentes.
 - Calibrar los limites de rate limiting / cuotas por canal (web vs MCP).

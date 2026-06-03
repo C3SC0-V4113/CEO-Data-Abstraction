@@ -13,6 +13,7 @@ sequenceDiagram
   participant Core as Core Internal API
   participant Orch as LLM Orchestrator
   participant Sem as Semantic Metric Layer
+  participant Fallback as Fallback Text-to-SQL
   participant Safety as SQL Safety Layer
   participant Prisma as Prisma ORM
   participant Audit as query_audit_log
@@ -26,15 +27,23 @@ sequenceDiagram
   MCPsvc->>MCPsvc: Validate MCP_API_KEY + tool scope
   MCPsvc->>Core: POST /internal/core/ask (CORE_SERVICE_TOKEN)
   Core->>Orch: Run pipeline
-  Orch->>LLM: NL + compact metric catalog (cacheable)
-  LLM-->>Orch: MetricQuery (or fallback SQL)
-  Orch->>Sem: MetricQuery
-  Sem->>Safety: Deterministic SQL
-  Safety-->>Sem: SELECT approved
-  Sem->>Prisma: Execute read-only query
+  Orch->>LLM: NL + MetricCatalogContext (cacheable)
+  alt semantic path
+    LLM-->>Orch: MetricQuery
+    Orch->>Sem: MetricQuery
+    Sem->>Safety: Deterministic SQL
+  else fallback_sql path
+    Orch->>LLM: NL + BusinessSchemaContext (allowlisted)
+    LLM-->>Orch: SQL candidate
+    Orch->>Fallback: candidate SQL
+    Fallback->>Safety: Candidate SQL
+    Orch->>Audit: warn analytics.fallback_sql_triggered
+  end
+  Safety->>Prisma: Execute read-only query
   Prisma->>DB: SELECT from ceo_* view
   DB-->>Prisma: Rows
-  Orch->>Audit: Store trace_id, path, MetricQuery, SQL
+  Prisma-->>Orch: Result set
+  Orch->>Audit: Store trace_id, path, MetricQuery/SQL
   Core-->>MCPsvc: answer, data, warnings, trace_id
   MCPsvc-->>McpGW: MCP response
   McpGW-->>Client: MCP response

@@ -130,7 +130,7 @@ Estas ideas siguen siendo validas, pero no son el nucleo del requerimiento:
 - Historico formal de reportes.
 - Reportes automaticos.
 - Alertas inteligentes.
-- RAG para definiciones de negocio.
+- RAG para definiciones de negocio, solo si una decision futura lo vuelve necesario.
 - Exportacion y programacion de reportes.
 
 ## Lectura Recomendada

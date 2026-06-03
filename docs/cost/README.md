@@ -80,7 +80,7 @@ abarata las interacciones a volumen.
   `Pricing`); cambian seguido, asi que reconfirmar antes de presupuestar.
 - Asume un promedio de tokens por interaccion; preguntas muy pesadas o con muchas
   filas pueden costar mas. Ajusta el perfil de tokens para escenarios conservadores.
-- No incluye costo de embeddings/RAG (solo se activa si el catalogo crece) ni de
-  infraestructura (API Gateways Cloudflare, servicio MCP, backend, PostgreSQL); esos son
-  costos de plataforma aparte del consumo de tokens LLM. Agrega filas si tu despliegue
-  los necesita.
+- No incluye infraestructura (API Gateways Cloudflare, servicio MCP, backend,
+  PostgreSQL); esos son costos de plataforma aparte del consumo de tokens LLM.
+- No incluye embeddings/RAG porque quedan fuera del alcance actual. Si se aprueba como
+  evolucion futura, agregar sus costos como filas separadas.

@@ -42,12 +42,14 @@ service-to-service); no recibe `DATABASE_URL_*` ni claves LLM.
 
 ### describe_business_schema
 
-Devuelve las views, metricas y columnas permitidas para el rol autenticado.
+Devuelve el catalogo de negocio permitido para el rol autenticado: metricas, views
+`ceo_*`, columnas y metadata semantica allowlisted. No devuelve DDL crudo.
 
 ### ask_company_data
 
-Recibe una pregunta ejecutiva en lenguaje natural y ejecuta el pipeline completo
-Text-to-SQL: contexto, LLM, validacion, consulta read-only y respuesta.
+Recibe una pregunta ejecutiva en lenguaje natural y ejecuta el pipeline completo:
+camino semantico `MetricQuery` por defecto o fallback Text-to-SQL gobernado, validacion,
+consulta read-only y respuesta.
 
 ### run_readonly_query
 
@@ -86,7 +88,10 @@ Las tools deben devolver una estructura compatible con la web app:
 - Separar MCP auth de web auth.
 - No exponer `MCP_API_KEY` al browser.
 - Aplicar scope por tool.
-- Auditar cliente, usuario, pregunta, SQL generado, SQL validado y resultado (en el backend core).
+- Auditar cliente, usuario, pregunta, `path`, `MetricQuery`, razon de fallback, SQL
+  candidato, SQL validado y resultado (en el backend core).
+- Emitir log `warn` `analytics.fallback_sql_triggered` cuando el backend core use
+  fallback SQL.
 - Ejecutar contra PostgreSQL con usuario read-only (solo desde el backend core).
 
 ## Flujo End-to-End
@@ -95,7 +100,9 @@ Las tools deben devolver una estructura compatible con la web app:
 2. La request pasa por el MCP API Gateway (rate limiting, cuotas, WAF).
 3. El servicio MCP valida `MCP_API_KEY` y scope, y llama a la core API del backend
    (`/internal/core/*`) con `CORE_SERVICE_TOKEN`.
-4. El LLM Orchestrator produce un `MetricQuery` (o fallback) y la Capa Semantica compila SQL.
+4. El LLM Orchestrator produce un `MetricQuery` y la Capa Semantica compila SQL
+   determinista. Si la pregunta esta fuera del catalogo, usa `BusinessSchemaContext`
+   para fallback Text-to-SQL y emite log `analytics.fallback_sql_triggered`.
 5. SQL Safety Layer valida por AST y allowlists.
 6. Database Layer ejecuta con usuario read-only.
 7. El backend sugiere visualizacion y registra auditoria.

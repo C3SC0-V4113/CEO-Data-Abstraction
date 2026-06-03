@@ -26,8 +26,9 @@ decision ya se tomo. La evidencia publica compartida lo confirma:
   pasa de 90.0% (Text-to-SQL) a 98.2% via capa semantica; GPT-5.3 Codex pasa de
   84.1% a 100%. Mas importante que el numero: fuera de cobertura la capa semantica
   **devuelve error** en vez de un resultado enganoso.
-- Denodo: con metadata semantica y vector search sobre el schema, BIRD sube de ~20%
-  a ~87% y Spider de ~50% a ~83%.
+- Denodo: con metadata semantica sobre el schema, BIRD sube de ~20% a ~87% y Spider
+  de ~50% a ~83%. La lectura util para este MVP es que la metadata de negocio importa
+  mas que exponer tablas crudas al modelo.
 - BIRD-bench: expertos humanos ~92.96%; los mejores sistemas ~82%. El reto no es
   "hablar con los datos" sino incorporar logica de negocio que no esta en el schema.
 
@@ -88,10 +89,16 @@ LLM Orchestrator y el SQL Safety Layer.
 - **Text-to-SQL libre queda como fallback explicito y auditado** solo para preguntas
   exploratorias fuera de cobertura del catalogo. El fallback sigue pasando por el SQL
   Safety Layer y el rol read-only; se marca en la auditoria como `path = fallback_sql`.
-- **Estrategia de entrega de schema:** no se vuelca el DDL completo al LLM. Se entrega
-  un catalogo de metricas compacto y cacheable (prompt caching); si el catalogo crece,
-  recuperacion selectiva (RAG/embeddings) de las metricas relevantes a la pregunta;
-  detalle on-demand via `describe_business_schema` / `GET /api/schema/catalog`.
+- **Estrategia de entrega de schema:** no se vuelca el DDL completo al LLM. El camino
+  semantico entrega un `MetricCatalogContext` compacto y cacheable (prompt caching). El
+  fallback Text-to-SQL entrega un `BusinessSchemaContext` reducido: solo views `ceo_*`,
+  columnas, relaciones, filtros y funciones allowlisted, con descripciones de negocio y
+  ejemplos cortos. El detalle on-demand via `describe_business_schema` /
+  `GET /api/schema/catalog` devuelve catalogo permitido por rol, no schema crudo.
+- Cada caida a fallback SQL debe emitir un log estructurado `warn` con evento
+  `analytics.fallback_sql_triggered`. Este evento avisa al equipo de desarrollo que la
+  Metric Layer no cubrio la pregunta y alimenta la decision de ampliar el catalogo de
+  metricas.
 - **Estrategia de modelos:** arquitectura agnostica de proveedor con **routing de dos
   niveles**: un modelo ligero/barato para clasificacion de intencion, aclaraciones,
   `chart_spec` y sugerencias; un modelo planificador fuerte para NL->`MetricQuery`,
@@ -106,7 +113,7 @@ LLM Orchestrator y el SQL Safety Layer.
   `docs/cost/README.md`.
 
 El detalle de diseno (esquema del catalogo, contrato `MetricQuery`, generador SQL,
-entrega de schema y comparativa de modelos) vive en
+entrega de schema, fallback gobernado, logs y comparativa de modelos) vive en
 `docs/architecture/semantic-layer-and-model-strategy.md`.
 
 ## Rationale
@@ -148,7 +155,8 @@ honesta entre proveedores.
   registrar el intento en auditoria.
 - Riesgo: el fallback reintroduce SQL libre riesgoso.
   Mitigacion: sigue pasando por SQL Safety Layer, allowlists y rol read-only; se marca
-  y audita como camino de fallback.
+  y audita como camino de fallback. Ademas emite un log estructurado para que desarrollo
+  revise si la pregunta debe convertirse en una metrica oficial.
 - Riesgo: la estimacion de costo es incierta (precios cambian).
   Mitigacion: calculadora `.xlsx` con precios editables y supuestos de tokens
   explicitos; revisar precios reales antes de comprometer presupuesto.
@@ -159,8 +167,15 @@ honesta entre proveedores.
   iniciar el backend; cambios pasan por revision.
 - El `MetricQuery` se valida contra el catalogo antes de compilar SQL; el SQL generado
   sigue pasando por el SQL Safety Layer (AST, allowlist, `LIMIT`, timeout, read-only).
-- La auditoria registra el `path` (`semantic` o `fallback_sql`), el `MetricQuery`, el
-  SQL generado y validado, y el `trace_id`.
+- La auditoria registra el `path` (`semantic` o `fallback_sql`), el `MetricQuery`,
+  `fallback_reason`, `fallback_schema_context_version`, el SQL candidato, el SQL
+  validado y el `trace_id`.
+- El backend emite un log `warn` `analytics.fallback_sql_triggered` cuando usa
+  `fallback_sql`. Campos minimos: `trace_id`, `conversation_id`, `user_role`,
+  `question`, `fallback_reason`, `missing_metric_or_dimension`,
+  `schema_context_version`, `candidate_sql_hash`, `validated_sql_hash` y `timestamp`.
+  No debe incluir SQL completo si contiene valores sensibles; usar hashes o una version
+  sanitizada.
 - Variables de configuracion sugeridas: `ORCHESTRATOR_MODEL` (default `GPT-5.2`),
   `LIGHT_MODEL` (default `GPT-5 mini`), `LLM_PROVIDER` (default `openai`), ademas de las
   claves por proveedor. Cambiar de modelo/proveedor no debe requerir cambios de codigo
