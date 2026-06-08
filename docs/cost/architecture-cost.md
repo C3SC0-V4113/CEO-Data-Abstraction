@@ -17,11 +17,11 @@ Repos/servicios de la arquitectura (ver `docs/architecture/proposal.md` y
 
 | Repo / servicio | Rol | Alojamiento |
 | --- | --- | --- |
-| `ceo-chat-web` | Frontend Next.js SSR | Cloudflare Workers |
+| `mirador-web` | Frontend Next.js SSR | Cloudflare Workers |
 | Web + MCP API Gateways | Borde (TLS, rate limit, WAF, cuotas) | Cloudflare |
-| `ceo-chat-core` | Backend Fastify + Orchestrator + Semantica + Safety + Knowledge Retrieval | Railway |
-| `ceo-chat-mcp` | Servicio MCP adapter | Railway |
-| `ceo-chat-ingestion` | Pipeline de ingesta RAG | Railway |
+| `mirador-core` | Backend Fastify + Orchestrator + Semantica + Safety + Knowledge Retrieval | Railway |
+| `mirador-mcp` | Servicio MCP adapter | Railway |
+| `mirador-ingestion` | Pipeline de ingesta RAG | Railway |
 | PostgreSQL + `pgvector` | Datos (metricas + vectores) | Railway |
 | Bucket de documentos | Archivos fuente para RAG | Cloudflare R2 |
 | Proveedor LLM + embeddings | Tokens de agentes (GPT-5.2 / GPT-5 mini) + embeddings (text-embedding-3-small) | OpenAI (default) |
@@ -34,11 +34,11 @@ no la plataforma.
 
 | Componente | Plan / tarifa representativa | Costo mensual aprox. |
 | --- | --- | --- |
-| Cloudflare Workers (`ceo-chat-web`) | Workers Paid (~$5/mo) o free tier en MVP | $0 - $5 |
+| Cloudflare Workers (`mirador-web`) | Workers Paid (~$5/mo) o free tier en MVP | $0 - $5 |
 | Cloudflare API Gateways (WAF/rate limit) | Incluido / add-ons segun reglas | $0 - bajo |
-| Railway `ceo-chat-core` | Servicio always-on (uso) | ~$5 - $10 |
-| Railway `ceo-chat-mcp` | Servicio liviano (uso) | ~$5 |
-| Railway `ceo-chat-ingestion` | Worker asincrono, escala a ~0 entre cargas | ~$0 - $5 |
+| Railway `mirador-core` | Servicio always-on (uso) | ~$5 - $10 |
+| Railway `mirador-mcp` | Servicio liviano (uso) | ~$5 |
+| Railway `mirador-ingestion` | Worker asincrono, escala a ~0 entre cargas | ~$0 - $5 |
 | Railway PostgreSQL + `pgvector` | Instancia gestionada (uso + storage) | ~$5 - $15 |
 | Cloudflare R2 | $0.015/GB-mes storage, sin egress fees | < $1 (docs del MVP) |
 | **Subtotal plataforma** | | **~$20 - $45 / mes** |
@@ -46,7 +46,7 @@ no la plataforma.
 Notas:
 
 - Railway es **usage-based**: el costo real depende de CPU/RAM/horas; los rangos asumen
-  servicios pequenos para MVP. `ceo-chat-ingestion` puede escalar casi a cero entre cargas
+  servicios pequenos para MVP. `mirador-ingestion` puede escalar casi a cero entre cargas
   de documentos.
 - Los API Gateways de Cloudflare son control de trafico; el costo extra aparece con reglas
   WAF avanzadas o volumen alto, no en el MVP.

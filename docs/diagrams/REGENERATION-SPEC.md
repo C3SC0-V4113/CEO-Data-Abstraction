@@ -124,7 +124,7 @@ regenerarlos importando los `.mmd` actualizados.
 Los `.mmd` ya incluyen la capa de Conocimiento (RAG) y la orquestacion multi-intencion;
 los `.drawio`/`.xml` deben incorporarlas al regenerar. Resumen por diagrama:
 
-- **architecture**: agregar contenedor **Ingesta RAG - Railway (`ceo-chat-ingestion`)** y
+- **architecture**: agregar contenedor **Ingesta RAG - Railway (`mirador-ingestion`)** y
   **Object storage - Cloudflare R2**; dentro del backend core, los nodos **Planner**
   (descompone `execution_plan`), **Knowledge Retrieval**, **KnowledgeBaseContext** y
   **Sintesis**; en Datos, **documents / document_chunks (pgvector)**. Aristas:
@@ -149,7 +149,7 @@ Diagramas nuevos sin equivalente report-first (no requieren limpieza, solo gener
 **Comunicacion R2 <-> Railway (importante para no dibujar mal la ingesta):** el archivo
 bruto vive en Cloudflare R2 y se accede por **API S3** desde Railway (sin bindings); la
 **cola/trigger es interna de Railway** (jobs en PostgreSQL o Redis), **no** Cloudflare
-Queues. No dibujar un Worker-puente ni una Cloudflare Queue entre R2 y `ceo-chat-ingestion`.
+Queues. No dibujar un Worker-puente ni una Cloudflare Queue entre R2 y `mirador-ingestion`.
 
 **Modelo de embeddings:** los nodos de embedding (ingesta y embed-query) nombran el modelo
 definido **`text-embedding-3-small`** (OpenAI; default por coherencia de proveedor, ver

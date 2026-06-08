@@ -1,4 +1,9 @@
-# Propuesta de Arquitectura: Text-to-SQL Chatbot Web SSR + MCP
+# Mirador - Propuesta de Arquitectura: Chatbot Ejecutivo (Text-to-SQL + RAG) Web SSR + MCP
+
+**Mirador** es el nombre del producto: un chatbot ejecutivo que da una vista panoramica
+del negocio combinando metricas (Text-to-SQL gobernado) y conocimiento documental (RAG).
+Los servicios siguen el esquema `mirador-*` (`mirador-web`, `mirador-core`, `mirador-mcp`,
+`mirador-ingestion`).
 
 ## Objetivo
 
@@ -34,15 +39,15 @@ propias son solo login y chatbot.
 | ORM | Prisma ORM | Backend Fastify |
 | Base de datos | PostgreSQL | Railway Postgres recomendado para MVP |
 | Vector store (RAG) | PostgreSQL + extension `pgvector` | Mismo Postgres de Railway |
-| Ingesta RAG | Servicio TypeScript independiente (`ceo-chat-ingestion`) | Railway |
+| Ingesta RAG | Servicio TypeScript independiente (`mirador-ingestion`) | Railway |
 | Object storage docs | Cloudflare R2 (archivos fuente RAG) | Cloudflare |
 | Embeddings | `text-embedding-3-small` (default, configurable via `EMBEDDING_MODEL`) | Proveedor LLM (OpenAI) |
 | Auth web | JWT + rol `CEO` | Fastify + cookies httpOnly o bearer interno |
 | Secretos | Workers Secrets / Railway Variables | Segun capa |
 | Reportes futuros | Queues/Workflows/R2 | Cloudflare opcional |
 
-Nombres de repo por servicio: `ceo-chat-web` (frontend), `ceo-chat-core` (backend
-Fastify), `ceo-chat-mcp` (servicio MCP) y `ceo-chat-ingestion` (ingesta RAG).
+Nombres de repo por servicio: `mirador-web` (frontend), `mirador-core` (backend
+Fastify), `mirador-mcp` (servicio MCP) y `mirador-ingestion` (ingesta RAG).
 
 Para un MVP con menor riesgo operativo, el backend Fastify + Prisma y PostgreSQL
 se desplegaran en Railway. Cloudflare Workers queda como opcion futura para el
@@ -268,7 +273,7 @@ Piezas:
   `documents` (registro/knowledge catalog) y `document_chunks` (embeddings + metadata). No
   se usa un servicio vectorial aparte, asi la recuperacion comparte el rol read-only y la
   auditoria.
-- **Knowledge Retrieval** (modulo interno de `ceo-chat-core`): embebe la consulta, hace
+- **Knowledge Retrieval** (modulo interno de `mirador-core`): embebe la consulta, hace
   busqueda vectorial top-k (read-only, filtrada por `access_scope`), rerank opcional y
   devuelve chunks con metadata de cita.
 - **`KnowledgeBaseContext`**: indice compacto y cacheable de documentos disponibles que el
@@ -277,12 +282,12 @@ Piezas:
 ### Ingesta Documental (RAG)
 
 La carga de documentos es **automatizada** y corre en un servicio asincrono independiente
-(`ceo-chat-ingestion`, Railway), separado del hot path. Es distinta del seed de datos
+(`mirador-ingestion`, Railway), separado del hot path. Es distinta del seed de datos
 metricos: alimenta la Capa de Conocimiento, no las views `ceo_*`.
 
 Plataformas: el archivo bruto vive en **Cloudflare R2**, pero la cola/trigger es **interna
 de Railway** (tabla de jobs en PostgreSQL o Redis), no Cloudflare Queues. R2 expone API
-**S3-compatible**, asi que `ceo-chat-ingestion` lo lee por HTTPS con el SDK de S3, **sin
+**S3-compatible**, asi que `mirador-ingestion` lo lee por HTTPS con el SDK de S3, **sin
 bindings de Cloudflare**. Los embeddings van a `pgvector` en el mismo Postgres de Railway.
 
 Flujo: subida a R2 (via el servicio o URL prefirmada) -> el servicio encola un job en

@@ -4,6 +4,10 @@ Guia para Claude Code en este repositorio. Las instrucciones operativas viven en
 [AGENTS.md](AGENTS.md): respetalo como fuente principal. Este archivo solo agrega
 contexto rapido y no debe contradecirlo.
 
+El producto se llama **Mirador**: un chatbot ejecutivo (Text-to-SQL gobernado + RAG). Los
+servicios siguen el esquema `mirador-*`: `mirador-web` (frontend Next.js SSR), `mirador-core`
+(backend Fastify), `mirador-mcp` (servicio MCP) y `mirador-ingestion` (ingesta RAG).
+
 ## Reglas heredadas de AGENTS.md (resumen)
 
 - Documentacion en espanol claro y tecnico; tono pragmatico:

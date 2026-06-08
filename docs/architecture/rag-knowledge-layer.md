@@ -31,21 +31,21 @@ Capa hermana de la Capa Semantica. No produce SQL ni toca las views `ceo_*`: rec
 fragmentos (`chunks`) de documentos corporativos relevantes a una sub-pregunta y los
 entrega al paso de sintesis para fundamentar la respuesta, citando la fuente.
 
-### 2.2 Pipeline de Ingesta automatizada (`ceo-chat-ingestion`)
+### 2.2 Pipeline de Ingesta automatizada (`mirador-ingestion`)
 
 Servicio asincrono independiente (Railway), separado del hot path porque su carga es
 distinta (parseo pesado, batch, picos al subir documentos).
 
 **Plataformas y comunicacion (decision):** el almacenamiento bruto de documentos vive en
 **Cloudflare R2**, pero la **orquestacion (cola/trigger) vive en Railway**. R2 expone una
-**API S3-compatible por HTTPS**, asi que `ceo-chat-ingestion` (Node) lee/escribe R2 con el
+**API S3-compatible por HTTPS**, asi que `mirador-ingestion` (Node) lee/escribe R2 con el
 SDK de S3 **sin bindings de Cloudflare** (a diferencia de Vectorize/D1). No se usan
 Cloudflare Queues: la cola es interna de Railway (tabla de jobs en PostgreSQL o Redis), para
 no depender de un Worker-puente. Los embeddings van a `pgvector` en el mismo Postgres.
 
 Flujo:
 
-1. **Aterrizaje:** el archivo se sube a R2. La subida pasa por `ceo-chat-ingestion` (o por
+1. **Aterrizaje:** el archivo se sube a R2. La subida pasa por `mirador-ingestion` (o por
    una URL prefirmada de R2) y el servicio **encola un job internamente** (Railway). Cada
    objeto lleva metadata minima (titulo, tipo, `access_scope`).
 2. **Trigger:** el worker de Railway consume su propia cola y procesa el job. La ingesta es
@@ -64,7 +64,7 @@ Flujo:
 8. **Re-index / borrado:** al reemplazar un documento se reindexan sus chunks; al eliminar
    el objeto se borran sus chunks y su registro.
 
-### 2.3 Knowledge Retrieval (modulo interno de `ceo-chat-core`)
+### 2.3 Knowledge Retrieval (modulo interno de `mirador-core`)
 
 Vive dentro del backend Fastify, en el hot path. Para una sub-pregunta de tipo
 `knowledge_lookup`:
@@ -248,10 +248,10 @@ calculadora + filas de embeddings/RAG) esta en `docs/cost/architecture-cost.md`.
 
 | Repo / servicio | Rol relativo a RAG | Alojamiento |
 | --- | --- | --- |
-| `ceo-chat-core` | LLM Orchestrator + planner + **Knowledge Retrieval** | Railway |
-| `ceo-chat-ingestion` | **Pipeline de ingesta** (parseo, chunking, embeddings, upsert) | Railway |
-| `ceo-chat-web` | Renderiza respuesta combinada (artefactos + citas) | Cloudflare Workers |
-| `ceo-chat-mcp` | Expone el conocimiento via tool MCP a la Core Internal API | Railway |
+| `mirador-core` | LLM Orchestrator + planner + **Knowledge Retrieval** | Railway |
+| `mirador-ingestion` | **Pipeline de ingesta** (parseo, chunking, embeddings, upsert) | Railway |
+| `mirador-web` | Renderiza respuesta combinada (artefactos + citas) | Cloudflare Workers |
+| `mirador-mcp` | Expone el conocimiento via tool MCP a la Core Internal API | Railway |
 
 Infra compartida (no es repo): PostgreSQL + `pgvector` (Railway) y bucket de documentos
 (Cloudflare R2).

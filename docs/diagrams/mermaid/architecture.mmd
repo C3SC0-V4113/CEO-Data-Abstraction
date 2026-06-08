@@ -13,7 +13,7 @@ flowchart LR
     McpGW["MCP API Gateway\nTLS, rate limit, WAF, cuotas por API key"]
   end
 
-  subgraph railwayApi["Backend core - Railway (proyecto Fastify, ceo-chat-core)"]
+  subgraph railwayApi["Backend core - Railway (proyecto Fastify, mirador-core)"]
     CoreAPI["Core Internal API\n/internal/core/*\n(service-to-service)"]
     Orchestrator["LLM Orchestrator"]
     Planner["Planner\ndescompone execution_plan tipado\n(metric_query | knowledge_lookup | direct)"]
@@ -30,7 +30,7 @@ flowchart LR
     Audit["query_audit_log\npath, execution_plan, retrieved_doc_ids"]
   end
 
-  subgraph ingestion["Ingesta RAG - Railway (proyecto ceo-chat-ingestion)"]
+  subgraph ingestion["Ingesta RAG - Railway (proyecto mirador-ingestion)"]
     Ingest["Pipeline de ingesta\ncola interna (Postgres/Redis)\nparseo, chunking, embeddings (text-embedding-3-small), upsert\n(asincrono, fuera del hot path)"]
   end
 

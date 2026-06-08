@@ -22,7 +22,7 @@ flowchart TB
     MCPsvc["MCP Service (adapter)\nMCP_API_KEY + scope"]
   end
 
-  subgraph backend["Backend core - Railway (Fastify, ceo-chat-core)"]
+  subgraph backend["Backend core - Railway (Fastify, mirador-core)"]
     CoreAPI["Core Internal API\n/internal/core/*"]
     Planner["Planner\nexecution_plan (metric | knowledge | direct)"]
     Clarify["Clarify if ambiguous"]

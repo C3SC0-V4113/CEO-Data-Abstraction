@@ -98,9 +98,9 @@ Puntos clave de la decision:
 
 - **Vector store:** extension `pgvector` sobre el PostgreSQL de Railway; tablas
   `documents` (registro/knowledge catalog) y `document_chunks` (embeddings + metadata).
-- **Recuperacion (retrieval):** modulo interno del backend (`ceo-chat-core`) que consulta
+- **Recuperacion (retrieval):** modulo interno del backend (`mirador-core`) que consulta
   pgvector via Prisma bajo el rol read-only.
-- **Ingesta automatizada:** servicio asincrono independiente (`ceo-chat-ingestion`,
+- **Ingesta automatizada:** servicio asincrono independiente (`mirador-ingestion`,
   Railway). El archivo bruto vive en **Cloudflare R2**, alcanzado por **API S3** (sin
   bindings); la **cola/trigger es interna de Railway** (jobs en PostgreSQL o Redis), no
   Cloudflare Queues. Pasos: parseo por formato, normalizacion, chunking, embeddings y
@@ -140,7 +140,7 @@ reversible porque la interfaz de recuperacion queda detras de un modulo interno.
 
 ### Negative
 
-- Nuevo servicio que operar (`ceo-chat-ingestion`) y nueva extension de base (`pgvector`).
+- Nuevo servicio que operar (`mirador-ingestion`) y nueva extension de base (`pgvector`).
 - Mas costo de tokens por interaccion cuando hay `knowledge_lookup` (chunks recuperados).
 - Costo de embeddings de ingesta (one-time por documento) y por query.
 
@@ -165,11 +165,11 @@ reversible porque la interfaz de recuperacion queda detras de un modulo interno.
 ## Implementation Notes
 
 - Habilitar la extension `pgvector`; modelar `documents` y `document_chunks` en Prisma.
-- `ceo-chat-ingestion`: archivo bruto en R2 (API S3, sin bindings); cola/trigger interna de
+- `mirador-ingestion`: archivo bruto en R2 (API S3, sin bindings); cola/trigger interna de
   Railway (jobs en PostgreSQL o Redis), no Cloudflare Queues; parseo por formato
   (PDF/docx/pptx/...); chunking con overlap; embeddings; upsert idempotente por
   `content_hash`; re-index al cambiar y borrado al eliminar.
-- Knowledge Retrieval en `ceo-chat-core`: embeber query, busqueda top-k, rerank opcional
+- Knowledge Retrieval en `mirador-core`: embeber query, busqueda top-k, rerank opcional
   (off por defecto), siempre read-only.
 - Orchestrator: `execution_plan` tipado y validado (modelo ligero) -> despacho paralelo
   -> sintesis (modelo planificador).

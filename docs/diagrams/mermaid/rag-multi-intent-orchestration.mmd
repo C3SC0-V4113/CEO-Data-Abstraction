@@ -3,7 +3,7 @@
 flowchart TD
   Question["Prompt CEO\nej. 'grafico de MRR y la mision de la empresa'"]
 
-  subgraph core["Backend core - Railway (ceo-chat-core)"]
+  subgraph core["Backend core - Railway (mirador-core)"]
     Orch["LLM Orchestrator"]
     Planner["Planner (LIGHT_MODEL / GPT-5 mini)\ndescompone en execution_plan tipado"]
     MetricCtx["MetricCatalogContext\n(cacheable)"]

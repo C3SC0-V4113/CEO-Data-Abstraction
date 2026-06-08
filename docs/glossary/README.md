@@ -158,7 +158,7 @@ incluye el contenido de los documentos, solo el indice gobernado.
 
 ## Knowledge Retrieval
 
-Modulo interno del backend (`ceo-chat-core`) que, para una sub-tarea `knowledge_lookup`,
+Modulo interno del backend (`mirador-core`) que, para una sub-tarea `knowledge_lookup`,
 embebe la consulta, hace busqueda vectorial top-k en `document_chunks` (read-only, filtrada
 por `access_scope`), aplica rerank opcional y devuelve los chunks con metadata de cita.
 
@@ -215,7 +215,7 @@ de la respuesta. No funciona como filtro. Los modos del MVP son `responder`,
 
 ## Pipeline de Ingesta
 
-Servicio asincrono independiente (`ceo-chat-ingestion`, Railway) que automatiza la carga de
+Servicio asincrono independiente (`mirador-ingestion`, Railway) que automatiza la carga de
 documentos a la Capa de Conocimiento. El archivo bruto vive en Cloudflare R2 (accedido por
 API S3, sin bindings) y la cola/trigger es **interna de Railway** (jobs en PostgreSQL o
 Redis), no Cloudflare Queues. El worker hace parseo por formato, normalizacion, chunking,

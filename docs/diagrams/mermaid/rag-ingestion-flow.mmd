@@ -10,7 +10,7 @@ flowchart TD
     R2["Bucket de documentos (archivo bruto)\nmetadata: titulo, tipo, access_scope\nacceso por API S3 (HTTPS)"]
   end
 
-  subgraph ingestion["Servicio de ingesta - Railway (ceo-chat-ingestion)"]
+  subgraph ingestion["Servicio de ingesta - Railway (mirador-ingestion)"]
     Queue["Cola de jobs (Railway)\nPostgreSQL o Redis"]
     Worker["Worker asincrono"]
     Parse["Parseo por formato\ntexto + estructura (paginas/secciones)"]
