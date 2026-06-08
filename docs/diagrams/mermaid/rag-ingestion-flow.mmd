@@ -16,7 +16,7 @@ flowchart TD
     Parse["Parseo por formato\ntexto + estructura (paginas/secciones)"]
     Normalize["Normalizacion\nlimpieza + conserva localizador para citar"]
     Chunk["Chunking\nfragmentos con overlap, tamano acotado"]
-    Embed["Embedding\nEMBEDDING_MODEL (one-time por chunk)"]
+    Embed["Embedding\ntext-embedding-3-small (one-time por chunk)"]
     Upsert["Upsert idempotente\ncontent_hash evita reembeber"]
   end
 

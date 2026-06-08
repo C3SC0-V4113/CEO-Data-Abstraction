@@ -207,10 +207,15 @@ Se agrega un **tercer eje de configuracion**, agnostico de proveedor:
 - `EMBEDDING_PROVIDER`, `EMBEDDING_MODEL`: modelo de embeddings para ingesta y para la
   query. Debe ser el **mismo** en ingesta y recuperacion (misma dimensionalidad/espacio).
 
-Opciones representativas de embeddings (elegir por costo/calidad y correr una eval, igual
-que con el planificador): familias `text-embedding-3` (OpenAI), `bge`/Workers AI
-(Cloudflare), Voyage o Cohere. La decision concreta y sus precios van en la calculadora de
-costos; cambiar de modelo de embeddings obliga a **reindexar**.
+**Modelo de embeddings definido: `text-embedding-3-small` (OpenAI)** como default, con
+`text-embedding-3-large` como upgrade de calidad. Criterio: mismo proveedor que la
+generacion (un solo SDK/billing/caching). La calculadora (hoja `RAG`) muestra que el costo
+RAG casi no depende del modelo de embeddings —la palanca es la sintesis—, asi que gana la
+coherencia. Alternativas comparadas (precio, dimensiones, MTEB, multilingue): `voyage-3` /
+`voyage-3-lite` (Voyage; Anthropic recomienda Voyage, no tiene embeddings propios), Cohere
+`embed v3`, `gemini-embedding-001` (Google) y `bge-m3` (Workers AI / self-host, con salto
+cross-cloud). Cambiar de modelo obliga a **reindexar**. Detalle y comparacion en
+`docs/cost/architecture-cost.md` y la hoja `RAG` de `llm-cost-calculator.xlsx`.
 
 ## 6. Optimizacion de costo (buenas practicas agenticas)
 

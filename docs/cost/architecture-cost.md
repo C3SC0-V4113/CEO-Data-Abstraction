@@ -24,7 +24,7 @@ Repos/servicios de la arquitectura (ver `docs/architecture/proposal.md` y
 | `ceo-chat-ingestion` | Pipeline de ingesta RAG | Railway |
 | PostgreSQL + `pgvector` | Datos (metricas + vectores) | Railway |
 | Bucket de documentos | Archivos fuente para RAG | Cloudflare R2 |
-| Proveedor LLM + embeddings | Tokens de agentes + embeddings | OpenAI (default) |
+| Proveedor LLM + embeddings | Tokens de agentes (GPT-5.2 / GPT-5 mini) + embeddings (text-embedding-3-small) | OpenAI (default) |
 
 ## 2. Costo de plataforma (representativo, mensual)
 
@@ -68,51 +68,60 @@ par default) supera al de plataforma. Detalle y fuentes en `README.md` y la hoja
 
 ## 4. Costo incremental de RAG
 
-RAG agrega tres conceptos sobre el costo de agentes anterior:
+Modelado en la hoja **RAG** de `llm-cost-calculator.xlsx`. **Modelo de embeddings definido:
+`text-embedding-3-small` (OpenAI)** (~$0.02/1M), con `text-embedding-3-large` como upgrade.
+RAG agrega tres conceptos sobre el costo de agentes:
 
 ### 4.1 Embeddings de ingesta (one-time por documento)
 
-Se calculan **una sola vez** al indexar (idempotencia por `content_hash`). Ejemplo:
-
-- 200 documentos x ~10,000 tokens c/u = ~2,000,000 tokens.
-- A ~$0.02 / 1M tokens (modelo de embeddings economico tipo `text-embedding-3-small`):
-  **~$0.04 one-time**. Practicamente despreciable; reindexar al cambiar el `EMBEDDING_MODEL`
-  repite este costo.
+Se calculan **una sola vez** al indexar (idempotencia por `content_hash`). Con los defaults
+de la hoja (200 docs x 8,000 tokens = 1.6M tokens) y `text-embedding-3-small`: **~$0.03
+one-time**. Despreciable; cambiar el `EMBEDDING_MODEL` obliga a reindexar y repite el costo.
 
 ### 4.2 Embedding de la query (por interaccion con `knowledge_lookup`)
 
-- ~50-100 tokens por consulta embebida -> fraccion de centavo por interaccion. Despreciable.
+- ~80 tokens por consulta embebida -> fraccion de centavo. Despreciable (~$0.0003/mes a 1
+  usuario).
 
 ### 4.3 Tokens extra de sintesis (chunks recuperados)
 
-Es el **costo real** de RAG por interaccion: los chunks top-k entran como input al pase de
-sintesis del planificador.
+Es la **palanca dominante** de RAG: los chunks top-k entran como input al pase de sintesis
+del planificador (GPT-5.2, input normal, no cacheable).
 
-- Ejemplo: top-k = 5 chunks x ~300 tokens = ~1,500 tokens de input adicional.
+- Default: top-k = 5 x ~300 tokens = ~1,500 tokens de input extra por interaccion-RAG.
 - Solo aplica cuando el `execution_plan` incluye `knowledge_lookup` (recuperacion
   condicional). Si el prompt es solo metrica, el costo RAG es **cero**.
-- Mitigado por top-k y tamano de chunk acotados.
 
-Estimacion: las interacciones con conocimiento cuestan un poco mas que el promedio de la
-calculadora (por esos ~1,500 tokens extra de input); las que no usan conocimiento no
-cambian. Para presupuestar, ajustar en la calculadora el perfil de tokens de entrada
-dinamica en la fraccion de interacciones que se espera usen RAG.
+### 4.4 Total RAG incremental (hoja RAG, defaults)
+
+Con 40% de interacciones usando conocimiento, top-k 5:
+
+| Usuarios | Ingesta inicial (one-time) | Total RAG incremental/mes |
+| --- | --- | --- |
+| 1 | ~$0.03 | ~$0.47 |
+| 10 | ~$0.03 | ~$4.63 |
+| 100 | ~$0.03 | ~$46.2 |
+
+**El modelo de embeddings casi no mueve el total**: a 1 usuario, el total RAG/mes va de
+~$0.46 (3-small / voyage-3-lite / bge-m3) a ~$0.49 (gemini); la diferencia esta en la
+sintesis, no en el embedding. Por eso se elige `text-embedding-3-small` por coherencia de
+proveedor (ver hoja `RAG`, seccion de comparacion, y `docs/cost/README.md`).
 
 ## 5. Totales aproximados
 
 | Usuarios | Plataforma/mes | Agentes (OpenAI default)/mes | RAG incremental/mes | Total aprox./mes |
 | --- | --- | --- | --- | --- |
-| 1 | ~$20 - $45 | ~$3.31 | ~centavos | ~$25 - $50 |
-| 10 | ~$25 - $55 | ~$33 | bajo | ~$60 - $90 |
-| 100 | ~$40 - $80 | ~$331 | moderado | ~$370 - $430 |
+| 1 | ~$20 - $45 | ~$3.31 | ~$0.47 | ~$25 - $50 |
+| 10 | ~$25 - $55 | ~$33 | ~$4.6 | ~$65 - $95 |
+| 100 | ~$40 - $80 | ~$331 | ~$46 | ~$420 - $460 |
 
 A bajo volumen domina la **plataforma**; a 100 usuarios domina el **consumo de tokens**.
 RAG agrega poco salvo que se suba mucho el top-k o el tamano de chunk.
 
 ## 6. Como mantener este documento
 
-- Si se aprueba ampliar la calculadora, agregar filas de embeddings y de tokens de chunks
-  en `llm-cost-calculator.xlsx` (ya previsto en `README.md`) y enlazarlas aqui.
+- La hoja **RAG** de `llm-cost-calculator.xlsx` ya modela embeddings y tokens de chunks;
+  ajustar sus variables amarillas (N docs, top-k, % RAG, modelo) para recalcular escenarios.
 - Reconfirmar tarifas de Railway/Cloudflare/OpenAI antes de cualquier presupuesto formal.
 - Revisar al cambiar de `EMBEDDING_MODEL` (obliga a reindexar) o de par de modelos.
 

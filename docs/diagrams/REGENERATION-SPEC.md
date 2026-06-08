@@ -151,6 +151,11 @@ bruto vive en Cloudflare R2 y se accede por **API S3** desde Railway (sin bindin
 **cola/trigger es interna de Railway** (jobs en PostgreSQL o Redis), **no** Cloudflare
 Queues. No dibujar un Worker-puente ni una Cloudflare Queue entre R2 y `ceo-chat-ingestion`.
 
+**Modelo de embeddings:** los nodos de embedding (ingesta y embed-query) nombran el modelo
+definido **`text-embedding-3-small`** (OpenAI; default por coherencia de proveedor, ver
+hoja `RAG` de `docs/cost/llm-cost-calculator.xlsx`). `text-embedding-3-large` es el upgrade
+de calidad. Reflejarlo igual en los `.drawio`.
+
 ## Como regenerar
 
 1. Abrir el `.mmd` actualizado en draw.io (Arrange -> Insert -> Advanced -> Mermaid)

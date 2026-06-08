@@ -173,6 +173,11 @@ reversible porque la interfaz de recuperacion queda detras de un modulo interno.
   (off por defecto), siempre read-only.
 - Orchestrator: `execution_plan` tipado y validado (modelo ligero) -> despacho paralelo
   -> sintesis (modelo planificador).
+- Embeddings: default `EMBEDDING_MODEL = text-embedding-3-small` (OpenAI), con
+  `text-embedding-3-large` como upgrade de calidad; intercambiable por configuracion. La
+  hoja `RAG` de `llm-cost-calculator.xlsx` compara modelos y muestra que el costo RAG casi
+  no depende del embedding (la palanca es la sintesis), por lo que se prioriza coherencia de
+  proveedor.
 - Auditoria: agregar `execution_plan` y `retrieved_doc_ids` a `query_audit_log`.
 
 ## Related Decisions

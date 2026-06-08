@@ -99,9 +99,11 @@ normalmente combinando acciones guiadas, explicaciones y conversacion.
 ## Embedding
 
 Representacion vectorial de un texto (chunk o consulta) que permite buscar por similitud
-semantica. Se calcula con el modelo configurado (`EMBEDDING_PROVIDER`, `EMBEDDING_MODEL`),
-debe ser el mismo en ingesta y recuperacion, y se almacena con `pgvector`. Cambiar de
-modelo de embeddings obliga a reindexar.
+semantica. Se calcula con el modelo configurado (`EMBEDDING_PROVIDER`, `EMBEDDING_MODEL`);
+default definido **`text-embedding-3-small`** (OpenAI), con `text-embedding-3-large` como
+upgrade. Debe ser el mismo en ingesta y recuperacion, y se almacena con `pgvector`. Cambiar
+de modelo de embeddings obliga a reindexar. Comparacion de modelos en la hoja `RAG` de
+`docs/cost/llm-cost-calculator.xlsx`.
 
 ## Execution Plan (Planner)
 

@@ -26,6 +26,13 @@ Soporta ADR-0006 y `docs/architecture/semantic-layer-and-model-strategy.md`.
   el costo diario / mensual / anual / por usuario para el modelo seleccionado.
 - **Escenarios**: compara OpenAI (recomendado) vs Claude vs Gemini para 1 / 10 / 100
   usuarios, con los mismos supuestos de tokens. Edita los pares de modelo si quieres otros.
+- **RAG**: calculadora del modelo de **embeddings** (RAG). Incluye (1) tabla comparativa de
+  modelos de embeddings con precio, dimensiones, max tokens, MTEB retrieval y multilingue;
+  (2) variables amarillas (N documentos, tokens/doc, % reindex, % interacciones con
+  conocimiento, top-k, tokens/chunk, tokens de query, modelo seleccionado via dropdown); (3)
+  calculo de ingesta inicial one-time, reindex/mes, query-embeddings/mes y tokens extra de
+  sintesis/mes; (4) comparacion del total RAG/mes por cada modelo. Referencia `Calculo!B16`
+  (interacciones/mes) y `Supuestos!B12` (modelo de sintesis).
 
 ## Decision de modelos (a partir de la calculadora + benchmark)
 
@@ -65,6 +72,17 @@ Por que, cruzando costo (calculadora) y exactitud (benchmark dbt LLM SL):
 - La decision es por configuracion (`ORCHESTRATOR_MODEL`, `LIGHT_MODEL`): cambiar de
   par no toca la arquitectura. Reevaluar cuando cambien precios o salgan modelos nuevos.
 
+## Decision del modelo de embeddings (RAG)
+
+**Definido: `text-embedding-3-small` (OpenAI)** como default, con `text-embedding-3-large`
+como upgrade de calidad. Criterio: **mismo proveedor** que la generacion (un solo
+SDK/billing/caching). La hoja `RAG` muestra que el costo RAG **casi no depende del modelo de
+embeddings**: con los supuestos por defecto (200 docs, 40% de interacciones con conocimiento,
+top-k 5), el total RAG/mes a 1 usuario va de ~$0.46 (3-small/voyage-lite/bge) a ~$0.49
+(gemini), porque la palanca dominante son los **tokens extra de sintesis** (chunks), no el
+embedding. Como el costo no decide, gana la coherencia operativa. `EMBEDDING_MODEL` queda
+intercambiable por configuracion; cambiarlo obliga a reindexar.
+
 ## De donde salen los supuestos de tokens
 
 El costo lo mueve sobre todo la **entrega de schema al LLM**
@@ -84,8 +102,6 @@ abarata las interacciones a volumen.
   PostgreSQL, ingesta RAG, R2); esos son costos de plataforma aparte del consumo de
   tokens LLM. El desglose por servicio/alojamiento esta en
   [architecture-cost.md](architecture-cost.md).
-- Esta hoja aun no modela embeddings/RAG (adoptado en ADR-0008). El costo incremental de
-  RAG (embeddings de ingesta one-time, embedding de query y tokens extra de chunks en la
-  sintesis) esta estimado en [architecture-cost.md](architecture-cost.md). Para
-  presupuestar con precision, agregar filas de embeddings y de tokens de chunks al `.xlsx`
-  y ajustar el perfil de tokens de entrada en la fraccion de interacciones que usen RAG.
+- El costo de **embeddings/RAG** (adoptado en ADR-0008) se modela en la hoja **RAG**:
+  ingesta one-time, reindex/mes, embedding de query y tokens extra de chunks en la sintesis.
+  El desglose por servicio/alojamiento esta en [architecture-cost.md](architecture-cost.md).

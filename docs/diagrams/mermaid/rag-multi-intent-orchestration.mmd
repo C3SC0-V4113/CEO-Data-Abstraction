@@ -16,7 +16,7 @@ flowchart TD
     end
 
     Safety["SQL Safety Layer\nAST, SELECT only, LIMIT, read-only"]
-    Retrieval["Knowledge Retrieval\nembed query -> top-k -> rerank opc."]
+    Retrieval["Knowledge Retrieval\nembed query (text-embedding-3-small)\ntop-k -> rerank opc."]
     Synth["Sintesis (ORCHESTRATOR_MODEL / GPT-5.2)\nrespuesta unica + citas"]
     Audit["query_audit_log\nexecution_plan, retrieved_doc_ids, trace_id"]
   end

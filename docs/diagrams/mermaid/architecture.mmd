@@ -31,7 +31,7 @@ flowchart LR
   end
 
   subgraph ingestion["Ingesta RAG - Railway (proyecto ceo-chat-ingestion)"]
-    Ingest["Pipeline de ingesta\ncola interna (Postgres/Redis)\nparseo, chunking, embeddings, upsert\n(asincrono, fuera del hot path)"]
+    Ingest["Pipeline de ingesta\ncola interna (Postgres/Redis)\nparseo, chunking, embeddings (text-embedding-3-small), upsert\n(asincrono, fuera del hot path)"]
   end
 
   subgraph storage["Object storage - Cloudflare R2"]
@@ -49,7 +49,7 @@ flowchart LR
   end
 
   subgraph external["Servicios externos"]
-    LLM["LLM Provider\nPlanner: GPT-5.2\nLight: GPT-5 mini"]
+    LLM["LLM Provider\nPlanner: GPT-5.2\nLight: GPT-5 mini\nEmbeddings: text-embedding-3-small"]
     ExternalClients["Claude Desktop / Cursor / Codex\nMCP clients"]
   end
 

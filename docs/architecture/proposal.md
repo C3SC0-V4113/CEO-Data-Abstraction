@@ -36,7 +36,7 @@ propias son solo login y chatbot.
 | Vector store (RAG) | PostgreSQL + extension `pgvector` | Mismo Postgres de Railway |
 | Ingesta RAG | Servicio TypeScript independiente (`ceo-chat-ingestion`) | Railway |
 | Object storage docs | Cloudflare R2 (archivos fuente RAG) | Cloudflare |
-| Embeddings | `EMBEDDING_MODEL` configurable (agnostico de proveedor) | Proveedor LLM |
+| Embeddings | `text-embedding-3-small` (default, configurable via `EMBEDDING_MODEL`) | Proveedor LLM (OpenAI) |
 | Auth web | JWT + rol `CEO` | Fastify + cookies httpOnly o bearer interno |
 | Secretos | Workers Secrets / Railway Variables | Segun capa |
 | Reportes futuros | Queues/Workflows/R2 | Cloudflare opcional |
@@ -473,9 +473,11 @@ La capa de modelos es agnostica de proveedor y se elige por configuracion
   final con citas): modelo fuerte en razonamiento estructurado.
 
 Para RAG se agrega un tercer eje de configuracion, tambien agnostico de proveedor:
-`EMBEDDING_PROVIDER` y `EMBEDDING_MODEL` (mismo modelo en ingesta y recuperacion). Cambiar
-de modelo de embeddings obliga a reindexar. Costos en
-[../cost/architecture-cost.md](../cost/architecture-cost.md).
+`EMBEDDING_PROVIDER` y `EMBEDDING_MODEL` (mismo modelo en ingesta y recuperacion). **Default
+definido: `text-embedding-3-small` (OpenAI)** por coherencia de proveedor, con
+`text-embedding-3-large` como upgrade; el costo RAG casi no depende del embedding (ver hoja
+`RAG` de la calculadora). Cambiar de modelo de embeddings obliga a reindexar. Comparacion y
+costos en [../cost/architecture-cost.md](../cost/architecture-cost.md).
 
 **Modelos definidos (default): GPT-5.2 como planificador y GPT-5 mini como nivel
 ligero** (ambos OpenAI). Se eligieron cruzando exactitud (la familia GPT-5.x lidera el
