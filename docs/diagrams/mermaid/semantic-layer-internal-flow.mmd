@@ -1,6 +1,11 @@
 flowchart TD
   Question["Pregunta CEO en lenguaje natural"]
   Orch["LLM Orchestrator\nclasifica intencion, periodo y alcance"]
+  Decompose["Planner / descomposicion\nLIGHT_MODEL -> execution_plan tipado\n(metric_query | knowledge_lookup | direct)"]
+  KnowledgeCtx["KnowledgeBaseContext\nindice de documentos (cacheable)"]
+  KnowledgeRetrieval["Knowledge Retrieval\nembed query -> top-k (read-only)"]
+  Vectors["document_chunks\nembeddings (pgvector)"]
+  Synth["Sintesis\nGPT-5.2 -> respuesta unica + citas"]
   Planner["LLM Planner\nGPT-5.2"]
   MetricContext["MetricCatalogContext\nmetricas, sinonimos, dimensiones,\nfiltros, grano, reglas MetricQuery"]
   BusinessContext["BusinessSchemaContext\nviews ceo_*, columnas, grano,\nrelaciones, filtros y funciones allowlisted"]
@@ -16,7 +21,12 @@ flowchart TD
   Promote["Discovery backlog\nampliar Metric Layer si es recurrente"]
 
   Question --> Orch
-  Orch --> MetricContext
+  Orch --> Decompose
+  KnowledgeCtx --> Decompose
+  Decompose -->|"metric_query"| MetricContext
+  Decompose -->|"knowledge_lookup"| KnowledgeRetrieval
+  KnowledgeRetrieval --> Vectors
+  KnowledgeRetrieval --> Synth
   MetricContext --> Planner
   Planner -->|"camino default"| MetricQuery
   MetricQuery --> Validator
@@ -28,6 +38,8 @@ flowchart TD
   CandidateSQL --> Safety
   Compiler --> Safety
   Safety --> DB
+  DB --> Synth
+  Synth --> Audit
   Safety --> Audit
   CandidateSQL --> FallbackLog
   FallbackLog --> Audit

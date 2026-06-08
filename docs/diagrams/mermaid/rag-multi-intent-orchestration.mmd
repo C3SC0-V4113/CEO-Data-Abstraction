@@ -1,0 +1,47 @@
+%% Orquestacion multi-intencion (ADR-0008): un prompt puede pedir metrica + conocimiento
+%% y ambas vuelven en una sola respuesta. Planner estructurado -> despacho paralelo -> sintesis.
+flowchart TD
+  Question["Prompt CEO\nej. 'grafico de MRR y la mision de la empresa'"]
+
+  subgraph core["Backend core - Railway (ceo-chat-core)"]
+    Orch["LLM Orchestrator"]
+    Planner["Planner (LIGHT_MODEL / GPT-5 mini)\ndescompone en execution_plan tipado"]
+    MetricCtx["MetricCatalogContext\n(cacheable)"]
+    KnowCtx["KnowledgeBaseContext\nindice de documentos (cacheable)"]
+
+    subgraph dispatch["Despacho en paralelo"]
+      MetricTask["metric_query\n-> MetricQuery -> SQL determinista"]
+      KnowTask["knowledge_lookup\n-> Knowledge Retrieval"]
+      DirectTask["direct_answer\n(sin metrica ni RAG)"]
+    end
+
+    Safety["SQL Safety Layer\nAST, SELECT only, LIMIT, read-only"]
+    Retrieval["Knowledge Retrieval\nembed query -> top-k -> rerank opc."]
+    Synth["Sintesis (ORCHESTRATOR_MODEL / GPT-5.2)\nrespuesta unica + citas"]
+    Audit["query_audit_log\nexecution_plan, retrieved_doc_ids, trace_id"]
+  end
+
+  subgraph data["Datos - Railway PostgreSQL"]
+    Views["views ceo_* (read-only)"]
+    Vectors["document_chunks (pgvector)"]
+  end
+
+  Response["Respuesta combinada\nartefactos (chart/table/kpi) + narrativa con citas"]
+
+  Question --> Orch
+  Orch --> Planner
+  MetricCtx --> Planner
+  KnowCtx --> Planner
+  Planner --> MetricTask
+  Planner --> KnowTask
+  Planner --> DirectTask
+  MetricTask --> Safety
+  Safety --> Views
+  KnowTask --> Retrieval
+  Retrieval --> Vectors
+  MetricTask --> Synth
+  KnowTask --> Synth
+  DirectTask --> Synth
+  Synth --> Response
+  Synth --> Audit
+  Planner --> Audit

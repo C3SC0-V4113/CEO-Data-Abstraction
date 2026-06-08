@@ -1,11 +1,14 @@
 %% Infra: todas estas tablas viven en Railway PostgreSQL (proyecto backend Fastify).
 %% El catalogo de metricas (capa semantica) es configuracion YAML/JSON, no una tabla.
+%% El knowledge catalog SI es tabla (documents) porque su contenido es dinamico (ADR-0008).
 %% Las views ceo_* se derivan de las tablas fuente y son la superficie read-only del LLM.
+%% document_chunks usa la extension pgvector para la columna embedding.
 erDiagram
   users ||--o{ sessions : owns
   users ||--o{ conversations : starts
   conversations ||--o{ chat_messages : contains
   conversations ||--o{ chat_artifacts : produces
+  documents ||--o{ document_chunks : has
   customers ||--o{ subscriptions : has
   customers ||--o{ invoices : receives
   customers ||--o{ sales_opportunities : has
@@ -145,6 +148,30 @@ erDiagram
     string currency
   }
 
+  documents {
+    uuid id
+    string title
+    string source_uri
+    string doc_type
+    string version
+    string content_hash
+    string access_scope
+    string status
+    datetime indexed_at
+    datetime created_at
+  }
+
+  document_chunks {
+    uuid id
+    uuid document_id
+    int chunk_index
+    string content
+    vector embedding
+    int token_count
+    string locator
+    string content_hash
+  }
+
   query_audit_log {
     uuid id
     string trace_id
@@ -153,6 +180,8 @@ erDiagram
     string path
     string question
     json metric_query
+    json execution_plan
+    json retrieved_doc_ids
     string generated_sql
     string validated_sql
     string validation_status

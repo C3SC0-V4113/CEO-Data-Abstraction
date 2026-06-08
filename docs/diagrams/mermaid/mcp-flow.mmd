@@ -13,37 +13,50 @@ sequenceDiagram
   participant Core as Core Internal API
   participant Orch as LLM Orchestrator
   participant Sem as Semantic Metric Layer
+  participant Know as Knowledge Retrieval (RAG)
   participant Fallback as Fallback Text-to-SQL
   participant Safety as SQL Safety Layer
   participant Prisma as Prisma ORM
+  participant Synth as Sintesis
   participant Audit as query_audit_log
   end
   box Railway - Datos
-  participant DB as PostgreSQL (ceo_* views)
+  participant DB as PostgreSQL (ceo_* views + pgvector)
   end
 
   Client->>McpGW: POST /mcp with Bearer token
   McpGW->>MCPsvc: forward (rate limited, WAF)
   MCPsvc->>MCPsvc: Validate MCP_API_KEY + tool scope
+  Note over MCPsvc: tools: ask_company_data, search_company_knowledge, ...
   MCPsvc->>Core: POST /internal/core/ask (CORE_SERVICE_TOKEN)
-  Core->>Orch: Run pipeline
-  Orch->>LLM: NL + MetricCatalogContext (cacheable)
-  alt semantic path
-    LLM-->>Orch: MetricQuery
-    Orch->>Sem: MetricQuery
-    Sem->>Safety: Deterministic SQL
-  else fallback_sql path
-    Orch->>LLM: NL + BusinessSchemaContext (allowlisted)
-    LLM-->>Orch: SQL candidate
-    Orch->>Fallback: candidate SQL
-    Fallback->>Safety: Candidate SQL
-    Orch->>Audit: warn analytics.fallback_sql_triggered
+  Core->>Orch: Run pipeline (planner -> execution_plan)
+  par metric_query (si aplica)
+    Orch->>LLM: NL + MetricCatalogContext (cacheable)
+    alt semantic path
+      LLM-->>Orch: MetricQuery
+      Orch->>Sem: MetricQuery
+      Sem->>Safety: Deterministic SQL
+    else fallback_sql path
+      Orch->>LLM: NL + BusinessSchemaContext (allowlisted)
+      LLM-->>Orch: SQL candidate
+      Orch->>Fallback: candidate SQL
+      Fallback->>Safety: Candidate SQL
+      Orch->>Audit: warn analytics.fallback_sql_triggered
+    end
+    Safety->>Prisma: Execute read-only query
+    Prisma->>DB: SELECT from ceo_* view
+    DB-->>Prisma: Rows
+    Prisma-->>Orch: Result set
+  and knowledge_lookup (si aplica)
+    Orch->>Know: sub-pregunta documental
+    Know->>Prisma: top-k vector search (read-only)
+    Prisma->>DB: SELECT from document_chunks (pgvector)
+    DB-->>Prisma: chunks + metadata
+    Prisma-->>Know: chunks
+    Know-->>Orch: chunks
   end
-  Safety->>Prisma: Execute read-only query
-  Prisma->>DB: SELECT from ceo_* view
-  DB-->>Prisma: Rows
-  Prisma-->>Orch: Result set
-  Orch->>Audit: Store trace_id, path, MetricQuery/SQL
-  Core-->>MCPsvc: answer, data, warnings, trace_id
+  Orch->>Synth: resultados de metrica + chunks -> respuesta + citas
+  Orch->>Audit: Store trace_id, execution_plan, retrieved_doc_ids
+  Core-->>MCPsvc: answer, data, citations, warnings, trace_id
   MCPsvc-->>McpGW: MCP response
   McpGW-->>Client: MCP response

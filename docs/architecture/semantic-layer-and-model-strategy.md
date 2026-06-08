@@ -466,8 +466,9 @@ para calcular el costo por N usuarios e interacciones.
 - Modelos por routing de dos niveles, agnostico de proveedor, **default GPT-5.2
   (planificador) + GPT-5 mini (ligero)**, decidido cruzando exactitud (benchmark) y
   costo (calculadora) e intercambiable por configuracion.
-- RAG/embeddings quedan fuera del alcance actual; solo podrian evaluarse como evolucion
-  futura si el catalogo crece mas alla de lo razonable para prompt caching.
+- RAG/embeddings se adoptan como **Capa de Conocimiento** hermana para preguntas
+  documentales no-metricas (ADR-0008, `rag-knowledge-layer.md`); no reemplazan el catalogo
+  de metricas, lo complementan con una capa aparte sobre `pgvector`.
 
 ## Referencias
 

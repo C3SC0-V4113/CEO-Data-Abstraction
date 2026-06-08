@@ -119,6 +119,38 @@ history.
 `mcp_flow_mermaid.drawio` fueron importados desde los Mermaid anteriores;
 regenerarlos importando los `.mmd` actualizados.
 
+## Adiciones RAG (ADR-0008)
+
+Los `.mmd` ya incluyen la capa de Conocimiento (RAG) y la orquestacion multi-intencion;
+los `.drawio`/`.xml` deben incorporarlas al regenerar. Resumen por diagrama:
+
+- **architecture**: agregar contenedor **Ingesta RAG - Railway (`ceo-chat-ingestion`)** y
+  **Object storage - Cloudflare R2**; dentro del backend core, los nodos **Planner**
+  (descompone `execution_plan`), **Knowledge Retrieval**, **KnowledgeBaseContext** y
+  **Sintesis**; en Datos, **documents / document_chunks (pgvector)**. Aristas:
+  Orchestrator -> Planner -> {Semantic | Knowledge Retrieval}; Knowledge Retrieval ->
+  Prisma -> pgvector; Semantic + Knowledge Retrieval -> Sintesis -> respuesta; R2 ->
+  Ingesta -> pgvector. `query_audit_log` ahora lleva `execution_plan` y `retrieved_doc_ids`.
+- **use-cases-and-flows**: agregar caso "consultar info documental (vision/mision)" y el
+  caso multi-intencion (metrica + conocimiento en una respuesta) via Planner -> {Metric,
+  Knowledge, Fallback, Clarify} -> Sintesis -> artifact.
+- **semantic-layer-internal-flow**: anteponer la descomposicion del Planner (LIGHT_MODEL)
+  y mostrar el camino `knowledge_lookup` (Knowledge Retrieval -> document_chunks) como
+  hermano del semantico/fallback, convergiendo en Sintesis.
+- **frontend-flow** y **mcp-flow**: agregar el paso de Planner y un bloque `par`
+  (metric_query y knowledge_lookup en paralelo) que converge en Sintesis con citas. En MCP,
+  nombrar la tool `search_company_knowledge`.
+- **database-model**: agregar `documents` y `document_chunks` (con `embedding` vector de
+  pgvector) y los campos `execution_plan` / `retrieved_doc_ids` en `query_audit_log`.
+
+Diagramas nuevos sin equivalente report-first (no requieren limpieza, solo generar
+`.drawio`/`.xml`): `rag-ingestion-flow.mmd` y `rag-multi-intent-orchestration.mmd`.
+
+**Comunicacion R2 <-> Railway (importante para no dibujar mal la ingesta):** el archivo
+bruto vive en Cloudflare R2 y se accede por **API S3** desde Railway (sin bindings); la
+**cola/trigger es interna de Railway** (jobs en PostgreSQL o Redis), **no** Cloudflare
+Queues. No dibujar un Worker-puente ni una Cloudflare Queue entre R2 y `ceo-chat-ingestion`.
+
 ## Como regenerar
 
 1. Abrir el `.mmd` actualizado en draw.io (Arrange -> Insert -> Advanced -> Mermaid)

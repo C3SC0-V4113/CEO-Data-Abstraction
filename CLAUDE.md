@@ -21,7 +21,9 @@ contexto rapido y no debe contradecirlo.
 Fase 1: repositorio **solo de documentacion**. No hay codigo de aplicacion, base de
 datos ni MCP server todavia. El paradigma vigente es **chatbot-first** (ADR-0005):
 login + chatbot como unicas interfaces; reportes generados como artefactos dentro
-del chat, no como dashboards o vistas separadas.
+del chat, no como dashboards o vistas separadas. El chat atiende metricas (Capa
+Semantica, ADR-0006) y preguntas documentales (Capa de Conocimiento / RAG, ADR-0008),
+con un planner que enruta ambas y las combina en una sola respuesta.
 
 ## Mapa del repositorio
 
@@ -42,6 +44,8 @@ docs/cost/               Calculadora de costos LLM y supuestos de tokens.
 2. [docs/adr/0005-...md](docs/adr/0005-adopt-chatbot-first-guided-analytics-experience.md) - paradigma chat-first.
 3. [docs/adr/0006-...md](docs/adr/0006-adopt-headless-semantic-metrics-layer-and-model-strategy.md) - capa semantica + modelos.
 4. [docs/architecture/semantic-layer-and-model-strategy.md](docs/architecture/semantic-layer-and-model-strategy.md) - diseno de capa semantica, entrega de schema y modelos.
+5. [docs/adr/0008-...md](docs/adr/0008-adopt-rag-knowledge-layer-and-multi-intent-orchestration.md) - capa de Conocimiento (RAG) + orquestacion multi-intencion.
+6. [docs/architecture/rag-knowledge-layer.md](docs/architecture/rag-knowledge-layer.md) - diseno de RAG, ingesta documental y planner que enruta metricas vs. conocimiento.
 
 ## Skills
 

@@ -22,34 +22,48 @@ flowchart TB
     MCPsvc["MCP Service (adapter)\nMCP_API_KEY + scope"]
   end
 
-  subgraph backend["Backend core - Railway (Fastify)"]
+  subgraph backend["Backend core - Railway (Fastify, ceo-chat-core)"]
     CoreAPI["Core Internal API\n/internal/core/*"]
+    Planner["Planner\nexecution_plan (metric | knowledge | direct)"]
     Clarify["Clarify if ambiguous"]
     Metric["Build MetricQuery\n(semantic layer)"]
+    Knowledge["Knowledge Retrieval\n(RAG, read-only)"]
     Fallback["Fallback Text-to-SQL\n(out of catalog)"]
     FallbackLog["warn log\nanalytics.fallback_sql_triggered"]
     Safety["SQL Safety Layer\n(read-only)"]
+    Synth["Sintesis\nrespuesta unica + citas"]
     Artifact["Chat artifact\ntext / kpi / table / chart"]
     EditChart["Edit chart (visual only)"]
-    Audit["Audit (path: semantic | fallback_sql)"]
+    Audit["Audit (path, execution_plan, retrieved_doc_ids)"]
+  end
+
+  subgraph data["Datos - Railway PostgreSQL"]
+    Vectors["document_chunks (pgvector)"]
   end
 
   CEO --> Login
   Login --> Chat
   Chat --> WebGW
-  WebGW --> Clarify
-  WebGW --> Metric
-  WebGW --> Fallback
+  WebGW --> Planner
+  Planner -->|"ambiguo"| Clarify
+  Planner -->|"metric_query"| Metric
+  Planner -->|"knowledge_lookup"| Knowledge
+  Planner -->|"fuera de catalogo"| Fallback
   External --> McpGW
   McpGW --> MCPsvc
   MCPsvc --> CoreAPI
-  CoreAPI --> Metric
+  CoreAPI --> Planner
+  Planner -. "uses" .-> LLM
   Metric -. "uses" .-> LLM
   Fallback -. "uses" .-> LLM
   Metric --> Safety
   Fallback --> Safety
   Fallback --> FallbackLog
   FallbackLog --> Audit
-  Safety --> Artifact
+  Knowledge --> Vectors
+  Safety --> Synth
+  Knowledge --> Synth
+  Synth --> Artifact
   Artifact --> EditChart
   Artifact --> Audit
+  Synth --> Audit

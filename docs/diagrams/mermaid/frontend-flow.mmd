@@ -10,12 +10,14 @@ sequenceDiagram
   participant API as Fastify API
   participant Orch as LLM Orchestrator
   participant Sem as Semantic Metric Layer
+  participant Know as Knowledge Retrieval (RAG)
   participant Fallback as Fallback Text-to-SQL
   participant Safety as SQL Safety Layer
+  participant Synth as Sintesis
   participant Audit as query_audit_log
   end
   box Railway - Datos
-  participant DB as PostgreSQL (ceo_* views)
+  participant DB as PostgreSQL (ceo_* views + pgvector)
   end
   box Servicios externos
   participant LLM as LLM Provider (GPT-5.2 / GPT-5 mini)
@@ -25,24 +27,37 @@ sequenceDiagram
   CEO->>Next: Ask question (mode: responder/analizar/reporte_visual/plan)
   Next->>WebGW: POST /api/chat/messages (content, intent_mode)
   WebGW->>API: forward (TLS, rate limit, WAF)
-  API->>Orch: Validate JWT+role, build output_plan
-  Orch->>LLM: NL + MetricCatalogContext (cacheable)
-  alt semantic path
-    LLM-->>Orch: MetricQuery
-    Orch->>Sem: MetricQuery
-    Sem->>Safety: Deterministic SQL
-  else fallback_sql path
-    Orch->>LLM: NL + BusinessSchemaContext (allowlisted)
-    LLM-->>Orch: SQL candidate
-    Orch->>Fallback: candidate SQL
-    Fallback->>Safety: Candidate SQL
-    Orch->>Audit: warn analytics.fallback_sql_triggered
+  API->>Orch: Validate JWT+role
+  Orch->>LLM: Plan (light) + MetricCatalogContext + KnowledgeBaseContext
+  LLM-->>Orch: execution_plan (metric_query | knowledge_lookup | direct)
+  par metric_query (si aplica)
+    Orch->>LLM: NL + MetricCatalogContext (cacheable)
+    alt semantic path
+      LLM-->>Orch: MetricQuery
+      Orch->>Sem: MetricQuery
+      Sem->>Safety: Deterministic SQL
+    else fallback_sql path
+      Orch->>LLM: NL + BusinessSchemaContext (allowlisted)
+      LLM-->>Orch: SQL candidate
+      Orch->>Fallback: candidate SQL
+      Fallback->>Safety: Candidate SQL
+      Orch->>Audit: warn analytics.fallback_sql_triggered
+    end
+    Safety->>DB: Validated SELECT (read-only)
+    DB-->>Safety: Rows
+    Safety-->>Orch: Result set
+  and knowledge_lookup (si aplica)
+    Orch->>Know: sub-pregunta documental
+    Know->>DB: top-k vector search (read-only)
+    DB-->>Know: chunks + metadata de cita
+    Know-->>Orch: chunks
   end
-  Safety->>DB: Validated SELECT (read-only)
-  DB-->>Safety: Rows
-  Safety-->>Orch: Result set
-  Orch->>Audit: Store trace_id, path, MetricQuery/SQL
-  Orch-->>API: answer, data, chart_spec, warnings, trace_id
+  Orch->>Synth: resultados de metrica + chunks
+  Synth->>LLM: sintesis (planner) -> respuesta + citas
+  LLM-->>Synth: answer + citations
+  Synth-->>Orch: respuesta combinada
+  Orch->>Audit: Store trace_id, execution_plan, retrieved_doc_ids
+  Orch-->>API: answer, data, chart_spec, citations, warnings, trace_id
   API-->>WebGW: Chat artifact (text/kpi/table/chart)
   WebGW-->>Next: Chat artifact
   Next-->>CEO: Render artifact inside thread

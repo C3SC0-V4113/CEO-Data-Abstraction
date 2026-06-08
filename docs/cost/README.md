@@ -81,6 +81,11 @@ abarata las interacciones a volumen.
 - Asume un promedio de tokens por interaccion; preguntas muy pesadas o con muchas
   filas pueden costar mas. Ajusta el perfil de tokens para escenarios conservadores.
 - No incluye infraestructura (API Gateways Cloudflare, servicio MCP, backend,
-  PostgreSQL); esos son costos de plataforma aparte del consumo de tokens LLM.
-- No incluye embeddings/RAG porque quedan fuera del alcance actual. Si se aprueba como
-  evolucion futura, agregar sus costos como filas separadas.
+  PostgreSQL, ingesta RAG, R2); esos son costos de plataforma aparte del consumo de
+  tokens LLM. El desglose por servicio/alojamiento esta en
+  [architecture-cost.md](architecture-cost.md).
+- Esta hoja aun no modela embeddings/RAG (adoptado en ADR-0008). El costo incremental de
+  RAG (embeddings de ingesta one-time, embedding de query y tokens extra de chunks en la
+  sintesis) esta estimado en [architecture-cost.md](architecture-cost.md). Para
+  presupuestar con precision, agregar filas de embeddings y de tokens de chunks al `.xlsx`
+  y ajustar el perfil de tokens de entrada en la fraccion de interacciones que usen RAG.

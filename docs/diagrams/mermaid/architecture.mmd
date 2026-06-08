@@ -13,25 +13,38 @@ flowchart LR
     McpGW["MCP API Gateway\nTLS, rate limit, WAF, cuotas por API key"]
   end
 
-  subgraph railwayApi["Backend core - Railway (proyecto Fastify + TypeScript)"]
+  subgraph railwayApi["Backend core - Railway (proyecto Fastify, ceo-chat-core)"]
     CoreAPI["Core Internal API\n/internal/core/*\n(service-to-service)"]
     Orchestrator["LLM Orchestrator"]
+    Planner["Planner\ndescompone execution_plan tipado\n(metric_query | knowledge_lookup | direct)"]
     MetricContext["MetricCatalogContext\ncacheable metric catalog"]
+    KnowledgeContext["KnowledgeBaseContext\nindice de documentos (cacheable)"]
     BusinessContext["BusinessSchemaContext\nfallback allowlisted schema"]
     Semantic["Semantic Metric Layer\nMetricQuery validator\ndeterministic SQL generator"]
+    KnowledgeRetrieval["Knowledge Retrieval\nembed query -> top-k\nrerank opcional (read-only)"]
     FallbackSQL["Fallback Text-to-SQL\nLLM SQL candidate"]
     Safety["SQL Safety Layer\nAST + allowlists\nSELECT only, LIMIT, timeout"]
+    Synth["Sintesis\nrespuesta unica + citas"]
     Prisma["Prisma ORM"]
     FallbackLog["warn log\nanalytics.fallback_sql_triggered"]
-    Audit["query_audit_log\npath: semantic | fallback_sql"]
+    Audit["query_audit_log\npath, execution_plan, retrieved_doc_ids"]
+  end
+
+  subgraph ingestion["Ingesta RAG - Railway (proyecto ceo-chat-ingestion)"]
+    Ingest["Pipeline de ingesta\ncola interna (Postgres/Redis)\nparseo, chunking, embeddings, upsert\n(asincrono, fuera del hot path)"]
+  end
+
+  subgraph storage["Object storage - Cloudflare R2"]
+    R2["Bucket de documentos\nPDF / Word / PPT / ..."]
   end
 
   subgraph mcpsvc["Servicio MCP - Railway (proyecto MCP independiente)"]
     MCPsvc["MCP Service (adapter)\nPOST /mcp\nMCP_API_KEY + scope por tool\nsin acceso a DB"]
   end
 
-  subgraph railwayDb["Datos - Railway PostgreSQL"]
+  subgraph railwayDb["Datos - Railway PostgreSQL + pgvector"]
     Postgres["PostgreSQL\nread-only runtime user\nceo_* views"]
+    Vectors["documents / document_chunks\nembeddings (pgvector)"]
     Seed["Prisma seed\nfake MVP data"]
   end
 
@@ -48,7 +61,11 @@ flowchart LR
   McpGW --> MCPsvc
   MCPsvc -->|"CORE_SERVICE_TOKEN\n/internal/core/*"| CoreAPI
   CoreAPI --> Orchestrator
-  Orchestrator --> MetricContext
+  Orchestrator --> Planner
+  MetricContext --> Planner
+  KnowledgeContext --> Planner
+  Planner -->|"metric_query"| MetricContext
+  Planner -->|"knowledge_lookup"| KnowledgeRetrieval
   MetricContext -->|"MetricCatalogContext\n(default semantic path)"| LLM
   LLM -->|"MetricQuery"| Semantic
   Orchestrator --> BusinessContext
@@ -60,5 +77,13 @@ flowchart LR
   FallbackLog --> Audit
   Safety --> Prisma
   Prisma --> Postgres
+  KnowledgeRetrieval -->|"read-only top-k"| Prisma
+  Prisma --> Vectors
+  Semantic --> Synth
+  KnowledgeRetrieval --> Synth
+  Synth -->|"answer + citas"| CoreAPI
   Seed --> Postgres
+  R2 -->|"lee archivo (API S3, sin bindings)"| Ingest
+  Ingest -->|"embeddings upsert"| Vectors
   Orchestrator --> Audit
+  Synth --> Audit

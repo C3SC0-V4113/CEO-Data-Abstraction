@@ -7,6 +7,13 @@ empresa desarrolladora de software. El sistema debe aceptar lenguaje natural,
 generar SQL seguro de solo lectura, devolver respuestas ejecutivas y renderizar
 tablas, KPIs o graficas dinamicas dentro de una experiencia de chatbot.
 
+Ademas de metricas, el chat debe responder preguntas **documentales no-metricas**
+(vision, mision, a que se dedica la empresa, politicas, procesos) usando una **Capa de
+Conocimiento (RAG)** sobre documentos heterogeneos (PDF, Word, presentaciones). Un mismo
+prompt puede pedir metrica y conocimiento a la vez, y ambas deben volver en **una sola
+respuesta**. El detalle de esa capa esta en
+[rag-knowledge-layer.md](rag-knowledge-layer.md) y la decision en ADR-0008.
+
 Debe existir acceso desde dos frentes:
 
 - Web app con login y chatbot ejecutivo.
@@ -26,9 +33,16 @@ propias son solo login y chatbot.
 | MCP remoto | Servicio MCP independiente + MCP TypeScript SDK | Servicio propio en Railway (no Fastify) |
 | ORM | Prisma ORM | Backend Fastify |
 | Base de datos | PostgreSQL | Railway Postgres recomendado para MVP |
+| Vector store (RAG) | PostgreSQL + extension `pgvector` | Mismo Postgres de Railway |
+| Ingesta RAG | Servicio TypeScript independiente (`ceo-chat-ingestion`) | Railway |
+| Object storage docs | Cloudflare R2 (archivos fuente RAG) | Cloudflare |
+| Embeddings | `EMBEDDING_MODEL` configurable (agnostico de proveedor) | Proveedor LLM |
 | Auth web | JWT + rol `CEO` | Fastify + cookies httpOnly o bearer interno |
 | Secretos | Workers Secrets / Railway Variables | Segun capa |
 | Reportes futuros | Queues/Workflows/R2 | Cloudflare opcional |
+
+Nombres de repo por servicio: `ceo-chat-web` (frontend), `ceo-chat-core` (backend
+Fastify), `ceo-chat-mcp` (servicio MCP) y `ceo-chat-ingestion` (ingesta RAG).
 
 Para un MVP con menor riesgo operativo, el backend Fastify + Prisma y PostgreSQL
 se desplegaran en Railway. Cloudflare Workers queda como opcion futura para el
@@ -184,6 +198,15 @@ Responsabilidades:
 - Recibir `intent_mode` como complemento del prompt, no como filtro.
 - Extraer requisitos explicitos del prompt.
 - Construir `output_plan` combinando modo y requisitos explicitos.
+- **Descomponer el prompt en un `execution_plan` tipado** (paso de Planner con el modelo
+  ligero): sub-tareas `metric_query`, `knowledge_lookup` y `direct_answer`. Asi un prompt
+  multi-intencion (metrica + conocimiento) se atiende en una sola respuesta. Ver
+  [rag-knowledge-layer.md](rag-knowledge-layer.md).
+- **Despachar las sub-tareas en paralelo:** `metric_query` al camino semantico/fallback;
+  `knowledge_lookup` a la Capa de Conocimiento (RAG, read-only).
+- **Sintetizar una sola respuesta** (modelo planificador) combinando artefactos de metrica
+  y narrativa documental con citas; tratar el contenido recuperado como dato, no como
+  instruccion.
 - Cargar rol, permisos, schema y views permitidas.
 - Cargar contexto conversacional minimo.
 - Construir contexto para el LLM segun camino: `MetricCatalogContext` para
@@ -230,6 +253,42 @@ fuera del catalogo, sujeto a las mismas barreras. En ese camino el LLM recibe un
 `BusinessSchemaContext` reducido (views `ceo_*`, columnas, relaciones, filtros y
 funciones allowlisted), no la base cruda. Cada uso genera un log de desarrollo para
 decidir si la pregunta debe promoverse al catalogo de metricas.
+
+### Capa de Conocimiento (RAG)
+
+Capa **hermana** de la Capa Semantica para preguntas **documentales no-metricas** (vision,
+mision, a que se dedica la empresa, politicas, procesos). No produce SQL ni toca las views
+`ceo_*`: recupera fragmentos (`chunks`) de documentos corporativos y los entrega al paso de
+sintesis con citas. Diseno completo en [rag-knowledge-layer.md](rag-knowledge-layer.md) y
+decision en ADR-0008.
+
+Piezas:
+
+- **Vector store (`pgvector`)**: extension sobre el PostgreSQL existente; tablas
+  `documents` (registro/knowledge catalog) y `document_chunks` (embeddings + metadata). No
+  se usa un servicio vectorial aparte, asi la recuperacion comparte el rol read-only y la
+  auditoria.
+- **Knowledge Retrieval** (modulo interno de `ceo-chat-core`): embebe la consulta, hace
+  busqueda vectorial top-k (read-only, filtrada por `access_scope`), rerank opcional y
+  devuelve chunks con metadata de cita.
+- **`KnowledgeBaseContext`**: indice compacto y cacheable de documentos disponibles que el
+  Planner usa para decidir cuando enrutar a `knowledge_lookup`.
+
+### Ingesta Documental (RAG)
+
+La carga de documentos es **automatizada** y corre en un servicio asincrono independiente
+(`ceo-chat-ingestion`, Railway), separado del hot path. Es distinta del seed de datos
+metricos: alimenta la Capa de Conocimiento, no las views `ceo_*`.
+
+Plataformas: el archivo bruto vive en **Cloudflare R2**, pero la cola/trigger es **interna
+de Railway** (tabla de jobs en PostgreSQL o Redis), no Cloudflare Queues. R2 expone API
+**S3-compatible**, asi que `ceo-chat-ingestion` lo lee por HTTPS con el SDK de S3, **sin
+bindings de Cloudflare**. Los embeddings van a `pgvector` en el mismo Postgres de Railway.
+
+Flujo: subida a R2 (via el servicio o URL prefirmada) -> el servicio encola un job en
+Railway -> parseo por formato (PDF/Word/PPT/...) -> normalizacion -> chunking con overlap
+-> embeddings -> upsert idempotente (`content_hash`) en `pgvector`. Re-indexa al reemplazar
+y borra al eliminar. Ver [../diagrams/mermaid/rag-ingestion-flow.mmd](../diagrams/mermaid/rag-ingestion-flow.mmd).
 
 ### SQL Safety Layer
 
@@ -289,6 +348,7 @@ Tools candidatas (cada una mapea a una llamada a la API interna core):
 - `run_readonly_query`
 - `suggest_executive_questions`
 - `generate_chart_spec`
+- `search_company_knowledge` (RAG: recupera info documental, read-only, con citas)
 
 Asi se reutiliza una sola Capa Semantica + SQL Safety Layer + acceso read-only + auditoria
 (la logica de datos vive en la core API, no en el servicio MCP). La web SSR sigue
@@ -313,21 +373,27 @@ API Gateway.
 2. Next.js envia mensaje a `POST /api/chat/messages` con `intent_mode`. La request pasa
    por el **Web API Gateway** (TLS, rate limiting, WAF, routing) antes de llegar a Fastify.
 3. Fastify valida JWT, rol y sesion.
-4. El LLM Orchestrator extrae requisitos explicitos del prompt.
-5. El LLM Orchestrator combina `mode_requirements` y
-   `explicit_prompt_requirements` en un `output_plan`.
-6. El LLM Orchestrator carga contexto permitido y estado conversacional.
-7. Si falta informacion, el sistema pide aclaracion.
-8. Si requiere datos, el LLM usa `MetricCatalogContext` y produce un `MetricQuery`
-   validado contra el catalogo de metricas; la Capa Semantica lo compila a SQL de forma
-   determinista. Si la pregunta esta fuera de cobertura, usa `BusinessSchemaContext` y
-   cae al fallback Text-to-SQL auditado.
-9. SQL Safety Layer valida por AST, allowlists, rol y limites.
-10. Database Layer ejecuta con usuario read-only.
-11. El backend genera narrativa, tabla/grafica/KPI, reporte o plan de accion
-    segun `output_plan`.
-12. Fastify registra auditoria, emite log de fallback si aplica y devuelve `trace_id`.
-13. Next.js renderiza el artefacto dentro del chat.
+4. El LLM Orchestrator extrae requisitos explicitos del prompt y combina
+   `mode_requirements` y `explicit_prompt_requirements` en un `output_plan`.
+5. El Planner (modelo ligero) descompone el prompt en un `execution_plan` tipado
+   (`metric_query` / `knowledge_lookup` / `direct_answer`) usando `MetricCatalogContext` y
+   `KnowledgeBaseContext` (ambos cacheables).
+6. El LLM Orchestrator carga contexto permitido y estado conversacional. Si falta
+   informacion, el sistema pide aclaracion.
+7. Las sub-tareas se despachan en **paralelo**:
+   - `metric_query`: el LLM usa `MetricCatalogContext` y produce un `MetricQuery` validado
+     contra el catalogo; la Capa Semantica lo compila a SQL de forma determinista. Si esta
+     fuera de cobertura, usa `BusinessSchemaContext` y cae al fallback Text-to-SQL auditado.
+   - `knowledge_lookup`: la Capa de Conocimiento embebe la consulta y recupera chunks top-k
+     desde `pgvector` (read-only, filtrado por `access_scope`).
+8. SQL Safety Layer valida por AST, allowlists, rol y limites; Database Layer ejecuta el
+   camino de metrica con usuario read-only.
+9. El paso de **sintesis** (modelo planificador) compone una sola respuesta: narrativa,
+   tabla/grafica/KPI y narrativa documental con **citas**, segun `output_plan`. El
+   contenido recuperado se trata como dato, no como instruccion.
+10. Fastify registra auditoria (`execution_plan`, `retrieved_doc_ids`, `path`), emite log
+    de fallback si aplica y devuelve `trace_id`.
+11. Next.js renderiza los artefactos y las citas dentro del chat.
 
 ### Flujo de Edicion de Grafica
 
@@ -350,13 +416,17 @@ API Gateway.
 3. El **servicio MCP** valida `MCP_API_KEY` y el scope por tool, y mapea la tool a una
    llamada a la **API interna core** del backend (`POST /internal/core/ask`) con auth
    service-to-service.
-4. El backend (LLM Orchestrator) carga el catalogo de metricas permitido y definiciones.
-5. El LLM produce un `MetricQuery` si la pregunta esta cubierta por el catalogo; si no,
-   usa `BusinessSchemaContext` para generar SQL candidato de fallback.
-6. SQL Safety Layer valida el SQL.
-7. Database Layer ejecuta con usuario read-only.
-8. El backend registra auditoria, emite log de fallback si aplica y devuelve narrativa,
-   datos y warnings al servicio MCP, que responde al cliente con el formato MCP.
+4. El backend (LLM Orchestrator) descompone el prompt en un `execution_plan` y carga el
+   catalogo de metricas permitido y el `KnowledgeBaseContext`.
+5. Para `metric_query`, el LLM produce un `MetricQuery` si la pregunta esta cubierta por el
+   catalogo; si no, usa `BusinessSchemaContext` para generar SQL candidato de fallback. Para
+   `knowledge_lookup` (p. ej. tool `search_company_knowledge`), la Capa de Conocimiento
+   recupera chunks desde `pgvector` (read-only).
+6. SQL Safety Layer valida el SQL del camino de metrica.
+7. Database Layer ejecuta con usuario read-only (metricas y busqueda vectorial).
+8. El backend sintetiza la respuesta con citas, registra auditoria (`execution_plan`,
+   `retrieved_doc_ids`), emite log de fallback si aplica y devuelve narrativa, datos,
+   citas y warnings al servicio MCP, que responde al cliente con el formato MCP.
 
 ## Manejo del Contexto LLM
 
@@ -372,6 +442,10 @@ El contexto enviado al LLM debe incluir solo lo necesario y depende del camino:
   permitidas con descripcion de negocio, grano de cada view, relaciones/join paths
   permitidos, filtros, funciones allowlisted y reglas de seguridad. El LLM genera SQL
   candidato solo en este camino.
+- **`KnowledgeBaseContext` (camino de conocimiento):** indice compacto y cacheable de los
+  documentos disponibles (titulos, descripciones cortas, tags, `access_scope`). El
+  contenido de los chunks solo se inyecta tras la recuperacion en el paso de sintesis, y se
+  trata como dato, no como instruccion.
 
 No debe incluir secretos, credenciales, DDL crudo completo, tablas bloqueadas,
 relaciones no permitidas ni datos sensibles fuera del alcance.
@@ -393,10 +467,15 @@ No se vuelca el DDL completo. Se usan contextos gobernados (detalle en
 La capa de modelos es agnostica de proveedor y se elige por configuracion
 (`LLM_PROVIDER`, `ORCHESTRATOR_MODEL`, `LIGHT_MODEL`). Se usa **routing de dos niveles**:
 
-- **Nivel ligero** (clasificacion de intencion, aclaraciones, `chart_spec`, sugerencias,
-  ediciones visuales): modelo barato/rapido.
-- **Nivel planificador** (NL -> `MetricQuery`, narrativa, analisis, fallback): modelo
-  fuerte en razonamiento estructurado.
+- **Nivel ligero** (descomposicion del `execution_plan`, clasificacion de intencion,
+  aclaraciones, `chart_spec`, sugerencias, ediciones visuales): modelo barato/rapido.
+- **Nivel planificador** (NL -> `MetricQuery`, narrativa, analisis, fallback y **sintesis**
+  final con citas): modelo fuerte en razonamiento estructurado.
+
+Para RAG se agrega un tercer eje de configuracion, tambien agnostico de proveedor:
+`EMBEDDING_PROVIDER` y `EMBEDDING_MODEL` (mismo modelo en ingesta y recuperacion). Cambiar
+de modelo de embeddings obliga a reindexar. Costos en
+[../cost/architecture-cost.md](../cost/architecture-cost.md).
 
 **Modelos definidos (default): GPT-5.2 como planificador y GPT-5 mini como nivel
 ligero** (ambos OpenAI). Se eligieron cruzando exactitud (la familia GPT-5.x lidera el
@@ -424,8 +503,13 @@ publicada no-Codex. Analisis y fuentes en `docs/cost/README.md` y
 - SQL Safety Layer antes de ejecutar.
 - Allowlist de schema.
 - `LIMIT`, timeout y max rows obligatorios.
-- Auditoria de prompts, `path`, `MetricQuery`, razon de fallback, SQL candidato, SQL
-  validado, cliente, usuario y `trace_id`.
+- Auditoria de prompts, `path`, `MetricQuery`, `execution_plan`, `retrieved_doc_ids`,
+  razon de fallback, SQL candidato, SQL validado, cliente, usuario y `trace_id`.
+- **Capa de Conocimiento (RAG) read-only:** la recuperacion vectorial usa el mismo rol
+  read-only de PostgreSQL y filtra por `access_scope`/rol.
+- **Mitigacion de prompt-injection:** el contenido recuperado de documentos se trata como
+  dato, no como instruccion; se sanitiza antes de inyectarlo y el system prompt de sintesis
+  esta endurecido. Sin evidencia suficiente, la respuesta dice que no se encontro.
 - Log estructurado `warn` `analytics.fallback_sql_triggered` cuando el sistema usa
   fallback SQL; debe usar hashes o contenido sanitizado si el SQL contiene valores
   sensibles.
@@ -483,6 +567,14 @@ combinan con el modo y no se descartan.
   "sql": "SELECT ...",
   "data": [],
   "artifacts": [],
+  "citations": [
+    {
+      "document_id": "doc_uuid",
+      "title": "Manifiesto de la empresa 2026",
+      "locator": "pag. 2",
+      "snippet": "Nuestra mision es..."
+    }
+  ],
   "chart": {
     "type": "line",
     "x": "month",
@@ -492,11 +584,17 @@ combinan con el modo y no se descartan.
   "suggested_questions": [],
   "metadata": {
     "client_type": "web",
-    "rows": 12
+    "rows": 12,
+    "execution_plan": ["metric_query", "knowledge_lookup"]
   },
   "trace_id": "uuid"
 }
 ```
+
+`citations` lista las fuentes documentales que respaldan la narrativa cuando el
+`execution_plan` incluye `knowledge_lookup`; queda vacio en respuestas solo de metrica.
+Los valores permitidos de `artifact_type` para MVP incluyen ademas `knowledge` para la
+narrativa documental con citas.
 
 Para artefactos generados en chat se extiende con:
 

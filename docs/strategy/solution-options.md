@@ -130,8 +130,10 @@ Estas ideas siguen siendo validas, pero no son el nucleo del requerimiento:
 - Historico formal de reportes.
 - Reportes automaticos.
 - Alertas inteligentes.
-- RAG para definiciones de negocio, solo si una decision futura lo vuelve necesario.
 - Exportacion y programacion de reportes.
+
+RAG para informacion documental (vision, mision, politicas) **si entra al nucleo**: se
+adopto como Capa de Conocimiento en ADR-0008 (`docs/architecture/rag-knowledge-layer.md`).
 
 ## Lectura Recomendada
 

@@ -1,0 +1,39 @@
+%% Pipeline de ingesta RAG automatizada (ADR-0008).
+%% Archivo bruto en Cloudflare R2 (API S3, sin bindings). Cola/trigger interna de Railway
+%% (NO Cloudflare Queues). Embeddings en pgvector. La ingesta corre fuera del hot path.
+flowchart TD
+  subgraph source["Origen de documentos"]
+    Upload["Subida de archivo\nPDF / Word / PPT / MD / HTML\n(via servicio o URL prefirmada)"]
+  end
+
+  subgraph storage["Object storage - Cloudflare R2"]
+    R2["Bucket de documentos (archivo bruto)\nmetadata: titulo, tipo, access_scope\nacceso por API S3 (HTTPS)"]
+  end
+
+  subgraph ingestion["Servicio de ingesta - Railway (ceo-chat-ingestion)"]
+    Queue["Cola de jobs (Railway)\nPostgreSQL o Redis"]
+    Worker["Worker asincrono"]
+    Parse["Parseo por formato\ntexto + estructura (paginas/secciones)"]
+    Normalize["Normalizacion\nlimpieza + conserva localizador para citar"]
+    Chunk["Chunking\nfragmentos con overlap, tamano acotado"]
+    Embed["Embedding\nEMBEDDING_MODEL (one-time por chunk)"]
+    Upsert["Upsert idempotente\ncontent_hash evita reembeber"]
+  end
+
+  subgraph data["Datos - Railway PostgreSQL + pgvector"]
+    Documents["documents\nregistro / knowledge catalog\nversion, content_hash, access_scope"]
+    Chunks["document_chunks\ncontent, embedding (vector),\nlocator, content_hash"]
+  end
+
+  Upload -->|"guarda archivo bruto (S3 API)"| R2
+  Upload -->|"encola job"| Queue
+  Queue --> Worker
+  Worker -->|"lee archivo (S3 API)"| R2
+  Worker --> Parse
+  Parse --> Normalize
+  Normalize --> Chunk
+  Chunk --> Embed
+  Embed --> Upsert
+  Upsert --> Documents
+  Upsert --> Chunks
+  R2 -. "borrar objeto -> borra chunks" .-> Chunks

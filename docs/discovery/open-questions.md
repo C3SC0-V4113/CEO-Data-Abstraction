@@ -112,8 +112,8 @@ no vistas separadas.
   calculadora de costos.
 - Definir el umbral de cobertura del catalogo de metricas (que % de preguntas debe
   resolver el camino semantico antes de aceptar el fallback).
-- Evaluar RAG/embeddings solo como evolucion futura si el catalogo crece mas alla de lo
-  razonable para prompt caching; queda fuera del alcance actual.
+- RAG/embeddings ya se adoptaron como Capa de Conocimiento documental (ADR-0008). Queda
+  por afinar: top-k, tamano de chunk, modelo de embeddings y politica de `access_scope`.
 - Evaluar si conviene migrar la capa semantica a dbt Semantic Layer al escalar a
   multiples roles y fuentes.
 - Calibrar los limites de rate limiting / cuotas por canal (web vs MCP).
